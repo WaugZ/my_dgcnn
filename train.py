@@ -8,6 +8,7 @@ import socket
 import importlib
 import os
 import sys
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
@@ -29,7 +30,7 @@ parser.add_argument('--decay_step', type=int, default=200000, help='Decay step f
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.7]')
 parser.add_argument('--quantize_delay', type=int, default=None, help='Quantization decay, >0 for open [default:0]')
 parser.add_argument('--checkpoint', default=None, help='Restore checkpoint')
-parser.add_argument('--dynamic', type=int,  default=-1,
+parser.add_argument('--dynamic', type=int, default=-1,
                     help="Whether dynamically compute the distance[<0 for yes else for no]")
 FLAGS = parser.parse_args()
 
@@ -47,18 +48,18 @@ CHECKPOINT = FLAGS.checkpoint
 DYNAMIC = True if FLAGS.dynamic < 0 else False
 print('dyancmic: ', DYNAMIC)
 
-MODEL = importlib.import_module(FLAGS.model) # import network module
-MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model+'.py')
+MODEL = importlib.import_module(FLAGS.model)  # import network module
+MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model + '.py')
 LOG_DIR = FLAGS.log_dir
 if CHECKPOINT:
     assert CHECKPOINT.endswith('ckpt')
     tmp = CHECKPOINT + '.index'
     LOG_DIR = os.path.dirname(tmp)
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
-os.system('cp %s %s' % (MODEL_FILE, LOG_DIR)) # bkp of model def
-os.system('cp train.py %s' % (LOG_DIR)) # bkp of train procedure
+os.system('cp %s %s' % (MODEL_FILE, LOG_DIR))  # bkp of model def
+os.system('cp train.py %s' % (LOG_DIR))  # bkp of train procedure
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
-LOG_FOUT.write(str(FLAGS)+'\n')
+LOG_FOUT.write(str(FLAGS) + '\n')
 
 MAX_NUM_POINT = 2048
 NUM_CLASSES = 40
@@ -78,29 +79,29 @@ TEST_FILES = provider.getDataFiles(
 
 
 def log_string(out_str):
-    LOG_FOUT.write(out_str+'\n')
+    LOG_FOUT.write(out_str + '\n')
     LOG_FOUT.flush()
     print(out_str)
 
 
 def get_learning_rate(batch):
     learning_rate = tf.train.exponential_decay(
-                        BASE_LEARNING_RATE,  # Base learning rate.
-                        batch * BATCH_SIZE,  # Current index into the dataset.
-                        DECAY_STEP,          # Decay step.
-                        DECAY_RATE,          # Decay rate.
-                        staircase=True)
-    learning_rate = tf.maximum(learning_rate, 0.00001) # CLIP THE LEARNING RATE!
+        BASE_LEARNING_RATE,  # Base learning rate.
+        batch * BATCH_SIZE,  # Current index into the dataset.
+        DECAY_STEP,  # Decay step.
+        DECAY_RATE,  # Decay rate.
+        staircase=True)
+    learning_rate = tf.maximum(learning_rate, 0.00001)  # CLIP THE LEARNING RATE!
     return learning_rate
 
 
 def get_bn_decay(batch):
     bn_momentum = tf.train.exponential_decay(
-                      BN_INIT_DECAY,
-                      batch * BATCH_SIZE,
-                      BN_DECAY_DECAY_STEP,
-                      BN_DECAY_DECAY_RATE,
-                      staircase=True)
+        BN_INIT_DECAY,
+        batch * BATCH_SIZE,
+        BN_DECAY_DECAY_STEP,
+        BN_DECAY_DECAY_RATE,
+        staircase=True)
     bn_momentum = tf.maximum(BN_DECAY_CLIP, bn_momentum)
     return bn_momentum
     # bn_decay = tf.minimum(BN_DECAY_CLIP, 1 - bn_momentum)
@@ -109,7 +110,7 @@ def get_bn_decay(batch):
 
 def train():
     with tf.Graph().as_default():
-        with tf.device('/gpu:'+str(GPU_INDEX)):
+        with tf.device('/gpu:' + str(GPU_INDEX)):
             pointclouds_pl = MODEL.placeholder_input(BATCH_SIZE, NUM_POINT)
             labels_pl = MODEL.placeholder_label(BATCH_SIZE)
             if not FLAGS.quantize_delay:
@@ -117,8 +118,8 @@ def train():
             else:
                 is_training = True
             # print(is_training_pl)
-            
-            # Note the global_step=batch parameter to minimize. 
+
+            # Note the global_step=batch parameter to minimize.
             # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
             batch = tf.Variable(0)
             bn_decay = BN_INIT_DECAY
@@ -144,7 +145,7 @@ def train():
             all_losses.append(tf.add_n(regularization_losses))
             total_loss = tf.add_n(all_losses)
 
-            #tf.summary.scalar('loss', loss)
+            # tf.summary.scalar('loss', loss)
             tf.summary.scalar('loss', total_loss)
 
             correct = tf.equal(tf.argmax(pred, 1), tf.to_int64(labels_pl))
@@ -166,12 +167,12 @@ def train():
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies([tf.group(*update_ops)]):
-                #train_op = optimizer.minimize(loss, global_step=batch)
+                # train_op = optimizer.minimize(loss, global_step=batch)
                 train_op = optimizer.minimize(total_loss, global_step=batch)
 
             # Add ops to save and restore all the variables.
             saver = tf.train.Saver(max_to_keep=50)
-            
+
         # Create a session
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -182,7 +183,7 @@ def train():
         # Add summary writers
         merged = tf.summary.merge_all()
         train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'),
-                                  sess.graph)
+                                             sess.graph)
         test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'test'))
 
         # Init variables
@@ -216,11 +217,11 @@ def train():
         for epoch in range(MAX_EPOCH):
             log_string('**** EPOCH %03d ****' % (epoch))
             sys.stdout.flush()
-             
+
             ma = train_one_epoch(sess, ops, train_writer)
             if not FLAGS.quantize_delay:
                 ma = eval_one_epoch(sess, ops, test_writer)
-            
+
                 # Save the variables to disk.
 
                 if ma > ever_best:
@@ -241,7 +242,7 @@ def train():
 def train_one_epoch(sess, ops, train_writer):
     """ ops: dict mapping from string to tf ops """
     is_training = True
-    
+
     # Shuffle train files
     train_file_idxs = np.arange(0, len(TRAIN_FILES))
     np.random.shuffle(train_file_idxs)
@@ -250,21 +251,21 @@ def train_one_epoch(sess, ops, train_writer):
     for fn in range(len(TRAIN_FILES)):
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
-        current_data = current_data[:,0:NUM_POINT,:]
-        current_data, current_label, _ = provider.shuffle_data(current_data, np.squeeze(current_label))            
+        current_data = current_data[:, 0:NUM_POINT, :]
+        current_data, current_label, _ = provider.shuffle_data(current_data, np.squeeze(current_label))
         current_label = np.squeeze(current_label)
-        
+
         file_size = current_data.shape[0]
         num_batches = file_size // BATCH_SIZE
-        
+
         total_correct = 0
         total_seen = 0
         loss_sum = 0
-       
+
         for batch_idx in range(num_batches):
             start_idx = batch_idx * BATCH_SIZE
-            end_idx = (batch_idx+1) * BATCH_SIZE
-            
+            end_idx = (batch_idx + 1) * BATCH_SIZE
+
             # Augment batched point clouds by rotation and jittering
             rotated_data = provider.rotate_point_cloud(current_data[start_idx:end_idx, :, :])
             jittered_data = provider.jitter_point_cloud(rotated_data)
@@ -278,7 +279,7 @@ def train_one_epoch(sess, ops, train_writer):
                     ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
                     ops['labels_pl']: current_label[start_idx:end_idx],
                     ops['is_training_pl']: is_training,
-                             }
+                }
             else:
                 feed_dict = {
                     # ops['pointclouds_pl']: jittered_data,
@@ -287,21 +288,22 @@ def train_one_epoch(sess, ops, train_writer):
                     # ops['is_training_pl']: is_training,
                 }
             summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
-                ops['train_op'], ops['loss'], ops['pred']], feed_dict=feed_dict)
+                                                             ops['train_op'], ops['loss'], ops['pred']],
+                                                            feed_dict=feed_dict)
             train_writer.add_summary(summary, step)
             pred_val = np.argmax(pred_val, 1)
             correct = np.sum(pred_val == current_label[start_idx:end_idx])
             total_correct += correct
             total_seen += BATCH_SIZE
             loss_sum += loss_val
-        
+
         log_string('mean loss: %f' % (loss_sum / float(num_batches)))
         log_string('accuracy: %f' % (total_correct / float(total_seen)))
 
         mean_acc += total_correct / float(total_seen)
     return mean_acc / len(TRAIN_FILES)
 
-        
+
 def eval_one_epoch(sess, ops, test_writer):
     """ ops: dict mapping from string to tf ops """
     is_training = False
@@ -310,20 +312,20 @@ def eval_one_epoch(sess, ops, test_writer):
     loss_sum = 0
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
-    
+
     for fn in range(len(TEST_FILES)):
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
-        current_data = current_data[:,0:NUM_POINT,:]
+        current_data = current_data[:, 0:NUM_POINT, :]
         # current_data = np.expand_dims(current_data, axis=-2)
         current_label = np.squeeze(current_label)
-        
+
         file_size = current_data.shape[0]
         num_batches = file_size // BATCH_SIZE
-        
+
         for batch_idx in range(num_batches):
             start_idx = batch_idx * BATCH_SIZE
-            end_idx = (batch_idx+1) * BATCH_SIZE
+            end_idx = (batch_idx + 1) * BATCH_SIZE
 
             feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
                          ops['labels_pl']: current_label[start_idx:end_idx],
@@ -331,21 +333,21 @@ def eval_one_epoch(sess, ops, test_writer):
                          }
 
             summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
-                ops['loss'], ops['pred']], feed_dict=feed_dict)
+                                                          ops['loss'], ops['pred']], feed_dict=feed_dict)
             pred_val = np.argmax(pred_val, 1)
             correct = np.sum(pred_val == current_label[start_idx:end_idx])
             total_correct += correct
             total_seen += BATCH_SIZE
-            loss_sum += (loss_val*BATCH_SIZE)
+            loss_sum += (loss_val * BATCH_SIZE)
             for i in range(start_idx, end_idx):
                 l = current_label[i]
                 total_seen_class[l] += 1
-                total_correct_class[l] += (pred_val[i-start_idx] == l)
-            
+                total_correct_class[l] += (pred_val[i - start_idx] == l)
+
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
     acc = total_correct / float(total_seen)
     log_string('eval accuracy: %f' % acc)
-    aca = np.mean(np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float))
+    aca = np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))
     log_string('eval avg class acc: %f' % aca)
 
     return acc

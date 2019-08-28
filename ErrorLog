@@ -1,1 +1,1 @@
-[bug]is_training的判断不能使用placeholder，因为tf-1.12.0有bug不能在对应位置加入伪量化节点。
+[bug]is_training的判断不能使用placeholder，因为tf-1.12.0[更正:现有全部版本]有bug不能在对应位置加入伪量化节点。
