@@ -5,11 +5,11 @@ from tensorflow.python.platform import app
 from quant_all_nodes import quant_normal_op
 from forward2get_min_max import forward_batch2get_min_max, forward2get_min_max
 
-read_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn.pb"
-out_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb"
+read_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn.pb"
+out_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_quant.pb"
 input_node = "input:0"
-input_quant = (0, 1)
-NUM = 50
+input_quant = (0, 1)  # data are range in [-1, 1] already
+NUM = 188
 
 if __name__ == "__main__":
     mins, maxes = forward2get_min_max(read_pb, input_node, input_quant, num=NUM)

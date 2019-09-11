@@ -120,5 +120,90 @@ def infer_graph(pb_file, input_node, output_nodes):
                     #     np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
 
 
-show_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb")
-infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb", 'input:0', 'DGCNN/Reshape:0')
+def single_infer(pb_file, input_node):
+    with tf.Graph().as_default() as graph:  # Set default graph as graph
+        with tf.Session() as sess:
+            # Load the graph in graph_def
+            # We load the protobuf file from the disk and parse it to retrive the unserialized graph_drf
+            with gfile.FastGFile(pb_file, 'rb') as f:
+                for fn in range(len(TEST_FILES)):
+                    print('----' + str(fn) + '----')
+                    current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
+                    current_data = current_data[:, 0:NUM_POINT, :]
+                    # current_data = np.expand_dims(current_data, axis=-2)
+                    current_label = np.squeeze(current_label)
+                    print(current_data.shape)
+
+                    file_size = current_data.shape[0]
+                    num_batches = file_size // BATCH_SIZE
+                    print(file_size)
+
+                    data = current_data[0:1, :, :]
+                    label = current_label[0]
+                    # interpreter.set_tensor(input_details[0]['index'], current_data[f_idx:f_idx+1, :, :])
+                    # Set FCN graph to the default graph
+                    graph_def = tf.GraphDef()
+                    graph_def.ParseFromString(f.read())
+                    sess.graph.as_default()
+
+                    # Import a graph_def into the current default Graph (In this case, the weights are (typically) embedded in the graph)
+                    tf.import_graph_def(
+                        graph_def,
+                        input_map=None,
+                        return_elements=None,
+                        name="",
+                        op_dict=None,
+                        producer_op_list=None
+                    )
+
+                    nodes = {}
+                    for ind, op in enumerate(graph.get_operations()):
+                        # INFERENCE Here
+                        # print([i for i in op.inputs], op.outputs,)
+                        # print(op.type)
+                        feed_dict = {}
+                        if ind == 0:
+                            init_input = graph.get_tensor_by_name(input_node)
+                            nodes[input_node] = data
+                        for inp in op.inputs:
+                            # print(inp)
+                            t = graph.get_tensor_by_name(inp.name)
+                            # print(t.op.type)
+                            if t.op.type != "Const" and t.op.type != 'Range':
+                                feed_dict[t] = nodes[t.name]
+                            # else:
+                            #     if "mul_fold" in t.name.lower():
+                            #         w = sess.run(t)
+                            #         if len(w.shape) == 4:
+                            #             w = w.transpose([3, 0, 1, 2])
+                            #         print(t.name, np.max(w), np.min(w), w.shape, w.flatten()[:100])
+                        # print(op.outputs)
+                        if not op.outputs:
+                            continue
+                        l_outputs = []
+                        for output in op.outputs:
+                            l_outputs.append(graph.get_tensor_by_name(output.name))  # Output Tensor
+
+                        if len(op.inputs) > 0:
+                            # print(feed_dict.keys())
+                            # if ind == len(ops) - 1:
+                            #   feed_dict.setdefault(init_input, [image])
+                            Session_out = sess.run(l_outputs, feed_dict=feed_dict)
+                            # Session_out1 = sess.run(l_output, feed_dict={init_input: [image]})
+                            # print(Session_out)
+                            for ind, output in enumerate(op.outputs):
+                                fea = Session_out[ind]
+                                print(output.name, np.mean(fea), np.std(fea))
+                                if len(fea.flatten()) == 9:
+                                    print(fea)
+
+                                if output not in nodes:
+                                    nodes[output.name] = Session_out[ind]
+
+                    # for name, tensor in nodes.items():
+                    #     print(name, np.mean(tensor), np.std(tensor))
+
+
+# show_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb")
+# infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_quant.pb", 'input:0', 'DGCNN/Reshape:0')
+single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_quant.pb", 'input:0')

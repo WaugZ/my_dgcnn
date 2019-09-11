@@ -129,7 +129,7 @@ def get_act_quant(input_graph_def, mins, maxes):
             quant_op = node_def_pb2.NodeDef()
             quant_op.name = quant_name_prefix + "FakeQuantWithMinMaxVars"
             quant_op.op = "FakeQuantWithMinMaxVars"
-            quant_op.attr["narrow_range"].CopyFrom(attr_value_pb2.AttrValue(b=True))
+            quant_op.attr["narrow_range"].CopyFrom(attr_value_pb2.AttrValue(b=False))
             quant_op.attr["num_bits"].CopyFrom(attr_value_pb2.AttrValue(i=8))
             quant_op.input.extend([node_input.name, min_op.name, max_op.name])  # the input order must be act, min, max
 
@@ -186,7 +186,7 @@ def quant_normal_op(input_graph_def, mins, maxes):
     for node in input_graph_def.node:  # normal op quant: quant before the operation
         # print(node.name)
 
-        if "batchnorm" in node.name.lower() or "fold" in node.name.lower():  # do not need to deal with bn layer
+        if "batchnorm" in node.name.lower():  # do not need to deal with bn layer
             continue
 
         modify_inputs = []
@@ -203,8 +203,13 @@ def quant_normal_op(input_graph_def, mins, maxes):
             if 'T' in input_node.attr.keys() and \
                 tf.dtypes.DType(input_node.attr['T'].type) == tf.int32:  # it is indexes addition, do not need quant
                 continue
-            if input_node.op in ('BatchMatMul', 'Mul', 'Add', 'Sub', 'Sum', ):
+            if input_node.op in ('BatchMatMul', 'BatchMatMulV2', 'Mul', 'Add', 'Sub', 'Sum', 'ConcatV2',
+                                 # 'MaxPool',
+                                 # 'Max',
+                                 ):
                 modify_inputs.append(input_node)
+            # if input_node.op == 'ConcatV2':
+            #     print()
 
         if not modify_inputs:  # do not need to modify this node
             continue
@@ -245,10 +250,8 @@ def quant_normal_op(input_graph_def, mins, maxes):
             quant_op = node_def_pb2.NodeDef()
             quant_op.name = quant_name_prefix + "FakeQuantWithMinMaxVars"
             quant_op.op = "FakeQuantWithMinMaxVars"
-            quant_op.attr["narrow_range"].CopyFrom(attr_value_pb2.AttrValue(b=True))
+            quant_op.attr["narrow_range"].CopyFrom(attr_value_pb2.AttrValue(b=False))
             quant_op.attr["num_bits"].CopyFrom(attr_value_pb2.AttrValue(i=8))
-            if node_input.op == "TopKV2":
-                quant_op.attr["sorted"].CopyFrom(attr_value_pb2.AttrValue(b=True))
             quant_op.input.extend([node_input.name, min_op.name, max_op.name])  # the input order must be node, min, max
             # print(quant_op)
 
@@ -285,12 +288,12 @@ def quant_normal_op(input_graph_def, mins, maxes):
 
     op_quant_graph_def.node.extend(new_ops)
 
-    # print('\n'.join(map(str, [(node.name, node.input, node.op, node.attr) for node in op_quant_graph_def.node])))
+    print('\n'.join(map(str, [(node.name, node.input, node.op) for node in op_quant_graph_def.node])))
     return op_quant_graph_def
 
 
 if __name__ == "__main__":
-    read_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn.pb"
+    read_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn.pb"
     input_graph_def = graph_pb2.GraphDef()
 
     with gfile.Open(read_pb, "rb") as f:
@@ -299,6 +302,6 @@ if __name__ == "__main__":
 
     op_quant_graph_def = quant_normal_op(input_graph_def, {}, {})
     out_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb"
-    f = gfile.FastGFile(out_pb, 'w')
-    f.write(op_quant_graph_def.SerializeToString())
+    # f = gfile.FastGFile(out_pb, 'w')
+    # f.write(op_quant_graph_def.SerializeToString())
     print("transform finish.")

@@ -199,6 +199,12 @@ def forward2get_min_max(pb_file, input_node, inp_quant, num=10):
                                     # print(t.op.type)
                                     if t.op.type != "Const" and t.op.type != 'Range':
                                         feed_dict[t] = nodes[t.name]
+                                    # else:
+                                    #     if "mul_fold" in t.name.lower():
+                                    #         w = sess.run(t)
+                                    #         if len(w.shape) == 4:
+                                    #             w = w.transpose([3, 0, 1, 2])
+                                    #         print(t.name, np.max(w), np.min(w), w.shape, w.flatten()[:100])
                                 # print(op.outputs)
                                 if not op.outputs:
                                     continue
@@ -220,6 +226,9 @@ def forward2get_min_max(pb_file, input_node, inp_quant, num=10):
                                 # print(nodes.keys())
 
                             print(np.argmax(nodes["DGCNN/Reshape:0"]))
+                            # w = nodes['DGCNN/transform_net/tconv1/weights_quant/FakeQuantWithMinMaxVars:0']
+                            # w = w.transpose([3, 0, 1, 2])
+                            # print(w.flatten())
                             for name, tensor in nodes.items():
                                 max_v = np.max(tensor)
                                 min_v = np.min(tensor)
