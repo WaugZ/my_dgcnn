@@ -32,6 +32,8 @@ parser.add_argument('--quantize_delay', type=int, default=None, help='Quantizati
 parser.add_argument('--checkpoint', default=None, help='Restore checkpoint')
 parser.add_argument('--dynamic', type=int, default=-1,
                     help="Whether dynamically compute the distance[<0 for yes else for no]")
+parser.add_argument('--stn', type=int, default=-1,
+                    help="whether use STN[<0 for yes else for no]")
 FLAGS = parser.parse_args()
 
 print(FLAGS)
@@ -46,6 +48,7 @@ DECAY_STEP = FLAGS.decay_step
 DECAY_RATE = FLAGS.decay_rate
 CHECKPOINT = FLAGS.checkpoint
 DYNAMIC = True if FLAGS.dynamic < 0 else False
+STN = True if FLAGS.stn < 0 else False
 print('dyancmic: ', DYNAMIC)
 
 MODEL = importlib.import_module(FLAGS.model)  # import network module
@@ -130,7 +133,8 @@ def train():
             pred, end_points = MODEL.get_network(pointclouds_pl, is_training,
                                                  bn_decay=bn_decay,
                                                  quant=FLAGS.quantize_delay,
-                                                 dynamic=DYNAMIC)
+                                                 dynamic=DYNAMIC,
+                                                 STN=STN)
 
             if FLAGS.quantize_delay and FLAGS.quantize_delay > 0:
                 tf.contrib.quantize.create_training_graph(

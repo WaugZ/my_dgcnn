@@ -1,3 +1,4 @@
 [bug]is_training的判断不能使用placeholder，因为tf-1.12.0[更正:现有全部版本]有bug不能在对应位置加入伪量化节点。
 [谜]可以转换成tflite时不能普通前向传播,可以前向传播时不能转成tflite, 可能要保留2个版本.
 quant_all_nodes.py line159-160 取消注释 且 167 的op类型加入 TopKV2 可以转成tflite, 当前状态可以pb前向传播
+inputs values are quantized into the quantization range ([0; 2^num_bits - 1] when narrow_range is false and [1; 2^num_bits - 1] when it is true) 

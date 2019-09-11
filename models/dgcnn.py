@@ -21,7 +21,7 @@ def placeholder_label(batch_size):
     labels_pl = tf.placeholder(tf.int32, shape=(batch_size), name='label')
     return labels_pl
 
-def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=True, weight_decay = 0.00004):
+def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=True, STN=True, weight_decay = 0.00004):
     """ Classification PointNet, input is BxNx3, output Bx40 """
     bn_decay = bn_decay if bn_decay is not None else 0.9
     with tf.variable_scope("DGCNN"):
@@ -37,19 +37,21 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                      'epsilon': 1e-3
                      }
 
-        adj_matrix = tf_util.pairwise_distance(point_cloud, quant)
-        nn_idx = tf_util.knn(adj_matrix, k=k)
-        edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
+        if STN:
+            adj_matrix = tf_util.pairwise_distance(point_cloud, quant)
+            nn_idx = tf_util.knn(adj_matrix, k=k)
+            edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
 
-        transform = input_transform_net(edge_feature, is_training, bn_decay, K=3, weight_decay=weight_decay)
+            transform = input_transform_net(edge_feature, is_training, bn_decay, K=3, weight_decay=weight_decay)
 
-        point_cloud_transformed = tf.matmul(point_cloud, transform)
+            point_cloud_transformed = tf.matmul(point_cloud, transform)
+        else:
+            point_cloud_transformed = point_cloud
         if quant:
             # point_cloud_transformed = tf.fake_quant_with_min_max_args(point_cloud_transformed, name="matmul_quant")
             pass
-        if dynamic:
-            adj_matrix = tf_util.pairwise_distance(point_cloud_transformed, quant)
-            nn_idx = tf_util.knn(adj_matrix, k=k)
+        adj_matrix = tf_util.pairwise_distance(point_cloud_transformed, quant)
+        nn_idx = tf_util.knn(adj_matrix, k=k)
         edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
 
         with tf.variable_scope("dgcnn1"):
@@ -158,7 +160,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                           activation_fn=tf.nn.relu6)
         net = slim.dropout(net, keep_prob=0.5, is_training=is_training, scope='dp2')
         net = slim.conv2d(net,
-                          40, [1, 1],
+                          64, [1, 1],
                           padding='SAME',
                           stride=1,
                           # normalizer_fn=slim.batch_norm,
@@ -174,7 +176,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
 def get_loss(pred, label, end_points):
     """ pred: B*NUM_CLASSES,
       label: B, """
-    labels = tf.one_hot(indices=label, depth=40)
+    labels = tf.one_hot(indices=label, depth=64)
     loss = tf.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
     classify_loss = tf.reduce_mean(loss)
     return classify_loss

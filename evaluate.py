@@ -23,10 +23,12 @@ parser.add_argument('--num_point', type=int, default=1024, help='Point Number [2
 parser.add_argument('--model_path', default='log/model.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
 parser.add_argument('--dump_dir', default='dump', help='dump folder path [dump]')
 parser.add_argument('--visu', action='store_true', help='Whether to dump image for error case [default: False]')
-parser.add_argument('--quantize_delay', type=int, default=-1, help='Quantization decay, >0 for open [default:0]')
-parser.add_argument('--dynamic', type=int,  default=-1, help="Whether dynamically compute the distance")
-parser.add_argument('--num_votes', type=int,  default=12, help="??")
-
+parser.add_argument('--quantize_delay', type=int, default=-1, help='Quantization decay, >=0 for open [default:-1]')
+parser.add_argument('--dynamic', type=int,  default=-1,
+                    help="Whether dynamically compute the distance, 1 for yes 0 for no")
+parser.add_argument('--num_votes', type=int,  default=1, help="augment number for evaluation")
+parser.add_argument('--stn', type=int, default=-1,
+                    help="whether use STN[<0 for yes else for no]")
 FLAGS = parser.parse_args()
 
 
@@ -37,12 +39,13 @@ GPU_INDEX = FLAGS.gpu
 MODEL = importlib.import_module(FLAGS.model) # import network module
 DUMP_DIR = FLAGS.dump_dir
 DYNAMIC = True if FLAGS.dynamic < 0 else False
+STN = True if FLAGS.stn < 0 else False
 NUM_VOTES = FLAGS.num_votes
 if not os.path.exists(DUMP_DIR): os.mkdir(DUMP_DIR)
 LOG_FOUT = open(os.path.join(DUMP_DIR, 'log_evaluate.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
 
-NUM_CLASSES = 40
+NUM_CLASSES = 64
 SHAPE_NAMES = [line.rstrip() for line in \
     open(os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/shape_names.txt'))] 
 
@@ -67,7 +70,7 @@ def evaluate(num_votes):
         labels_pl = MODEL.placeholder_label(BATCH_SIZE)
 
         # simple model
-        pred, end_points = MODEL.get_network(pointclouds_pl, is_training, dynamic=DYNAMIC)
+        pred, end_points = MODEL.get_network(pointclouds_pl, is_training, dynamic=DYNAMIC, STN=STN)
         if FLAGS.quantize_delay >= 0:
             tf.contrib.quantize.create_eval_graph()
         loss = MODEL.get_loss(pred, labels_pl, end_points)
@@ -168,6 +171,8 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
                 
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
     log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
+    total_seen_class = total_seen_class[:40]
+    total_correct_class = total_correct_class[:40]
     log_string('eval avg class acc: %f' % (np.mean(np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float))))
     
     class_accuracies = np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float)
