@@ -93,7 +93,6 @@ def Quantize(graph,
     # Quantize the weights.
     context = _GetContextFromOp(layer_match.layer_op)
 
-
     op_re = re.search(r'^(.*)/([^/]+)', layer_match.layer_op.name)
     if op_re:
       op_name = op_re.group(2)
@@ -113,19 +112,7 @@ def Quantize(graph,
         vars_collection=vars_collection,
         bits=activation_bits,
         symmetric=symmetric,
-        producer_scope=scope,
-        consumer_scope=scope)
-
-
-  # _QuantizeActivationLayers(
-  #     quantized_ops,
-  #     graph,
-  #     is_training,
-  #     activation_bits,
-  #     ema_decay,
-  #     quant_delay,
-  #     vars_collection,
-  #     scope=scope)
+        producer_scope=scope)
 
 
 def _QuantizeActivationLayers(quantized_ops,
@@ -240,7 +227,10 @@ def _FindLayersToQuantize(graph):
   matmul_patten = graph_matcher.OpTypePattern('BatchMatMul|BatchMatMulV2')
   sum_patten = graph_matcher.OpTypePattern('Sum')
   concat_patten = graph_matcher.OpTypePattern('Concat|ConcatV2|Tile')
-  all_pattens = [add_patten, mul_patten, sub_patten, matmul_patten, sub_patten, sum_patten, concat_patten]
+  topk_patten = graph_matcher.OpTypePattern('TopK|TopKV2')
+  all_pattens = [add_patten, mul_patten, sub_patten, matmul_patten, sub_patten, sum_patten, concat_patten,
+                 # topk_patten
+                 ]
 
 
   layer_matches = []

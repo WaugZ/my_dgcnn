@@ -14,7 +14,7 @@ NUM_POINT = 1024
 NUM_CLASSES = 40
 # output_file = "/home/wangzi/quant_log.txt"
 # Load TFLite model and allocate tensors.
-interpreter = tf.lite.Interpreter(model_path="/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn.tflite")
+interpreter = tf.lite.Interpreter(model_path="/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn.tflite")
 interpreter.allocate_tensors()
 
 # Get input and output tensors.
@@ -39,9 +39,8 @@ total_correct_class = [0 for _ in range(NUM_CLASSES)]
 for fn in range(len(TEST_FILES)):
     current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
     current_data = current_data[:, 0:NUM_POINT, :]
-    # current_data = np.round(current_data * 255)
+    # current_data = np.round(current_data * 128 + 127)
     # current_data = current_data.astype(np.uint8)
-    # current_data = np.expand_dims(current_data, axis=-2)
     current_label = np.squeeze(current_label)
     print(current_data.shape)
 

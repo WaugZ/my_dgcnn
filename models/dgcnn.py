@@ -47,16 +47,16 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
 
             transform = input_transform_net(edge_feature, is_training, bn_decay, K=3, weight_decay=weight_decay)
 
-            point_cloud_transformed = tf.matmul(point_cloud, transform)
+            with tf.variable_scope("Transform"):
+                point_cloud_transformed = tf.matmul(point_cloud, transform)
         else:
             point_cloud_transformed = point_cloud
-        if quant:
-            # point_cloud_transformed = tf.fake_quant_with_min_max_args(point_cloud_transformed, name="matmul_quant")
-            pass
-        adj_matrix = tf_util.pairwise_distance(point_cloud_transformed, quant)
-        nn_idx = tf_util.knn(adj_matrix, k=k)
+
+            adj_matrix = tf_util.pairwise_distance(point_cloud_transformed, quant)
+            nn_idx = tf_util.knn(adj_matrix, k=k)
+
         edge_feature = tf_util.get_edge_feature(point_cloud_transformed,
-                                                nn_idx=nn_idx, k=k)
+                                                    nn_idx=nn_idx, k=k)
 
         with tf.variable_scope("dgcnn1"):
             net = slim.conv2d(edge_feature,

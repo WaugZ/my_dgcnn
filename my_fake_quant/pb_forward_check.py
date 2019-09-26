@@ -229,5 +229,5 @@ def single_infer(pb_file, input_node):
 
 
 # show_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb")
-infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0919_quant_noSTN_noD_relu6/dgcnn_quant.pb", 'input:0', 'DGCNN/Reshape:0')
-# single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_quant.pb", 'input:0')
+# infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn.pb", 'input:0', 'DGCNN/Reshape:0')
+single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn.pb", 'input:0')

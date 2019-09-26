@@ -140,7 +140,20 @@ def train():
             if FLAGS.quantize_delay and FLAGS.quantize_delay > 0:
                 tf.contrib.quantize.create_training_graph(
                     quant_delay=FLAGS.quantize_delay)
-                my_quantization.create_training_graph(quant_delay=FLAGS.quantize_delay)
+                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                                                   scope="DGCNN/get_edge_feature")
+                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                                                   scope="DGCNN/get_edge_feature_1")
+                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                                                   scope="DGCNN/get_edge_feature_2")
+                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                                                   scope="DGCNN/get_edge_feature_3")
+                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                                                   scope="DGCNN/agg")
+                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                                                   scope="DGCNN/transform_net")
+                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                                                   scope="DGCNN/Transform")
 
             # Get loss
             loss = MODEL.get_loss(pred, labels_pl, end_points)

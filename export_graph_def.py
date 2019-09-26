@@ -38,7 +38,13 @@ if __name__ == "__main__":
 
         if FLAGS.quantize_delay >= 0:
             tf.contrib.quantize.create_eval_graph()
-            my_quantization.create_eval_graph()
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/get_edge_feature")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/get_edge_feature_1")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/get_edge_feature_2")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/get_edge_feature_3")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/agg")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/transform_net")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/Transform")
 
         graph_def = graph.as_graph_def()
 

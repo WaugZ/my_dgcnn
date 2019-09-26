@@ -47,9 +47,8 @@ def tflite_infer(model):
     for fn in range(len(TEST_FILES)):
         current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
         current_data = current_data[:, 0:NUM_POINT, :]
-        current_data = np.round(current_data * 128 + 127)
-        current_data = current_data.astype(np.uint8)
-        # current_data = np.expand_dims(current_data, axis=-2)
+        # current_data = np.round(current_data * 128 + 127)
+        # current_data = current_data.astype(np.uint8)
         current_label = np.squeeze(current_label)
         # print(current_data.shape)
 
@@ -93,6 +92,6 @@ def tflite_infer(model):
 
 if __name__ == "__main__":
     start = time.time()
-    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_0919_quant_noSTN_noD_relu6/dgcnn_uint8.tflite")
+    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_uint8.tflite")
     end = time.time()
     print("infer finish in {}".format(end - start))

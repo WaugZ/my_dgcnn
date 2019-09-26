@@ -74,7 +74,13 @@ def evaluate(num_votes):
         pred, end_points = MODEL.get_network(pointclouds_pl, is_training, dynamic=DYNAMIC, STN=STN)
         if FLAGS.quantize_delay >= 0:
             tf.contrib.quantize.create_eval_graph()
-            my_quantization.create_eval_graph()
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/get_edge_feature")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/get_edge_feature_1")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/get_edge_feature_2")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/get_edge_feature_3")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/agg")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/transform_net")
+            my_quantization.experimental_create_eval_graph(scope="DGCNN/Transform")
 
         loss = MODEL.get_loss(pred, labels_pl, end_points)
         
