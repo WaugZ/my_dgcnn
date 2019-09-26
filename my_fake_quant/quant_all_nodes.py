@@ -203,7 +203,8 @@ def quant_normal_op(input_graph_def, mins, maxes):
             if 'T' in input_node.attr.keys() and \
                 tf.dtypes.DType(input_node.attr['T'].type) == tf.int32:  # it is indexes addition, do not need quant
                 continue
-            if input_node.op in ('BatchMatMul', 'BatchMatMulV2', 'Mul', 'Add', 'Sub', 'Sum', 'ConcatV2',
+            if input_node.op in ('ConcatV2', 'Sub',
+                                 'BatchMatMul', 'BatchMatMulV2', 'Mul', 'Add',  'Sum',
                                  # 'MaxPool',
                                  # 'Max',
                                  ):

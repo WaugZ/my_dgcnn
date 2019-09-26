@@ -15,6 +15,7 @@ sys.path.append(os.path.join(BASE_DIR, 'models'))
 sys.path.append(os.path.join(BASE_DIR, 'utils'))
 import provider
 import tf_util
+import my_quantization
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
@@ -125,7 +126,7 @@ def train():
             # Note the global_step=batch parameter to minimize.
             # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
             batch = tf.Variable(0)
-            bn_decay = BN_INIT_DECAY
+            # bn_decay = BN_INIT_DECAY
             bn_decay = get_bn_decay(batch)
             tf.summary.scalar('bn_decay', bn_decay)
 
@@ -139,6 +140,7 @@ def train():
             if FLAGS.quantize_delay and FLAGS.quantize_delay > 0:
                 tf.contrib.quantize.create_training_graph(
                     quant_delay=FLAGS.quantize_delay)
+                my_quantization.create_training_graph(quant_delay=FLAGS.quantize_delay)
 
             # Get loss
             loss = MODEL.get_loss(pred, labels_pl, end_points)

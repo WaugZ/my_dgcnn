@@ -5,8 +5,8 @@ from tensorflow.python.platform import app
 from quant_all_nodes import quant_normal_op
 from forward2get_min_max import forward_batch2get_min_max, forward2get_min_max
 
-read_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn.pb"
-out_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_quant.pb"
+read_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log_0919_quant_noSTN_noD_relu6/dgcnn.pb"
+out_pb = "/media/wangzi/wangzi/codes/my_dgcnn/log_0919_quant_noSTN_noD_relu6/dgcnn_quant.pb"
 input_node = "input:0"
 input_quant = (0, 1)  # data are range in [-1, 1] already
 NUM = 188

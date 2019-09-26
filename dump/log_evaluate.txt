@@ -1,47 +1,47 @@
-Namespace(batch_size=64, dump_dir='dump', dynamic=-1, gpu=0, model='dgcnn', model_path='log/model-75.ckpt', num_point=1024, num_votes=1, quantize_delay=0, visu=False)
+Namespace(batch_size=64, dump_dir='dump', dynamic=1, gpu=0, model='dgcnn', model_path='log/model-55.ckpt', num_point=1024, num_votes=1, quantize_delay=-1, stn=1, visu=False)
 Model restored.
 ----0----
 ----1----
-eval mean loss: 1.626987
-eval accuracy: 0.905428
-eval avg class acc: 0.863764
+eval mean loss: 1.523279
+eval accuracy: 0.899260
+eval avg class acc: 0.862221
   airplane:	1.000
-   bathtub:	0.898
-       bed:	0.990
-     bench:	0.750
- bookshelf:	0.970
-    bottle:	0.950
-      bowl:	0.900
-       car:	1.000
+   bathtub:	0.939
+       bed:	0.970
+     bench:	0.700
+ bookshelf:	0.949
+    bottle:	0.960
+      bowl:	0.950
+       car:	0.980
      chair:	0.980
-      cone:	1.000
-       cup:	0.650
-   curtain:	0.800
-      desk:	0.929
+      cone:	0.842
+       cup:	0.600
+   curtain:	0.850
+      desk:	0.871
       door:	0.950
-   dresser:	0.833
-flower_pot:	0.000
- glass_box:	0.938
+   dresser:	0.762
+flower_pot:	0.100
+ glass_box:	0.885
     guitar:	1.000
   keyboard:	0.944
-      lamp:	0.900
+      lamp:	0.850
     laptop:	1.000
-    mantel:	0.928
-   monitor:	0.990
-night_stand:	0.765
+    mantel:	0.979
+   monitor:	0.939
+night_stand:	0.894
     person:	0.950
-     piano:	0.897
-     plant:	0.860
-     radio:	0.800
-range_hood:	0.938
-      sink:	0.600
-      sofa:	0.990
-    stairs:	0.800
-     stool:	0.800
-     table:	0.788
-      tent:	0.900
-    toilet:	1.000
-  tv_stand:	0.816
-      vase:	0.847
-  wardrobe:	0.700
+     piano:	0.918
+     plant:	0.840
+     radio:	0.700
+range_hood:	0.876
+      sink:	0.850
+      sofa:	1.000
+    stairs:	0.900
+     stool:	0.850
+     table:	0.768
+      tent:	0.950
+    toilet:	0.980
+  tv_stand:	0.857
+      vase:	0.806
+  wardrobe:	0.550
       xbox:	0.800

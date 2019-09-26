@@ -4,6 +4,7 @@ import sys
 import importlib
 import argparse
 
+import my_quantization
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
@@ -17,20 +18,27 @@ parser.add_argument('--batch_size', type=int, default=1, help='Batch Size during
 parser.add_argument('--quantize_delay', type=int, default=-1,
                     help='Whether the model is quantized >= 0 for yes[default No]')
 parser.add_argument('--output_graph', default="log/infer_graph.pb", help='the path to export graph def')
+parser.add_argument('--dynamic', type=int, default=-1,
+                    help="Whether dynamically compute the distance[<0 for yes else for no]")
+parser.add_argument('--stn', type=int, default=-1,
+                    help="whether use STN[<0 for yes else for no]")
 FLAGS = parser.parse_args()
 
 BATCH_SIZE = FLAGS.batch_size
 NUM_POINT = FLAGS.num_point
+DYNAMIC = True if FLAGS.dynamic < 0 else False
+STN = True if FLAGS.stn < 0 else False
 MODEL = importlib.import_module(FLAGS.model)
 
 if __name__ == "__main__":
     with tf.Graph().as_default() as graph:
         pointclouds_pl = MODEL.placeholder_input(BATCH_SIZE, NUM_POINT)
 
-        MODEL.get_network(pointclouds_pl, is_training=False)
+        MODEL.get_network(pointclouds_pl, is_training=False, dynamic=DYNAMIC, STN=STN)
 
         if FLAGS.quantize_delay >= 0:
             tf.contrib.quantize.create_eval_graph()
+            my_quantization.create_eval_graph()
 
         graph_def = graph.as_graph_def()
 

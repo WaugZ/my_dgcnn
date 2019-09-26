@@ -58,6 +58,9 @@ def infer_graph(pb_file, input_node, output_nodes):
             # Load the graph in graph_def
             # We load the protobuf file from the disk and parse it to retrive the unserialized graph_drf
             with gfile.FastGFile(pb_file, 'rb') as f:
+                num_votes = 1
+                total_correct = 0
+                total_seen = 0
                 for fn in range(len(TEST_FILES)):
                     print('----' + str(fn) + '----')
                     current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
@@ -67,12 +70,10 @@ def infer_graph(pb_file, input_node, output_nodes):
                     print(current_data.shape)
 
                     file_size = current_data.shape[0]
-                    num_batches = file_size // BATCH_SIZE
-                    print(file_size)
+                    # num_batches = file_size // BATCH_SIZE
+                    # print(file_size)
 
-                    num_votes = 1
-                    total_correct = 0
-                    total_seen = 0
+
                     for f_idx in range(file_size):
                         for vote_idx in range(num_votes):
                             # rotated_data = provider.rotate_point_cloud_by_angle(current_data[f_idx:f_idx+1, :, :],
@@ -108,14 +109,14 @@ def infer_graph(pb_file, input_node, output_nodes):
                                 Session_out = sess.run(l_output, feed_dict={l_input: data})
                                 res.append(Session_out)
                                 # return res
-                                print(Session_out, np.argmax(Session_out), label)
+                                # print(Session_out, np.argmax(Session_out), label)
                                 pred = np.argmax(Session_out)
 
                                 # correct = np.sum(pred_val_topk[:,0:topk] == label_val)
                                 total_correct += 1 if pred == label else 0
                                 total_seen += 1
 
-                    print('eval accuracy: %f' % (total_correct / float(total_seen)))
+                print('eval accuracy: %f' % (total_correct / float(total_seen)))
                     # print('eval avg class acc: %f' % (
                     #     np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
 
@@ -171,6 +172,7 @@ def single_infer(pb_file, input_node):
                             # print(t.op.type)
                             if t.op.type != "Const" and t.op.type != 'Range':
                                 feed_dict[t] = nodes[t.name]
+
                             # else:
                             #     if "mul_fold" in t.name.lower():
                             #         w = sess.run(t)
@@ -193,9 +195,31 @@ def single_infer(pb_file, input_node):
                             # print(Session_out)
                             for ind, output in enumerate(op.outputs):
                                 fea = Session_out[ind]
-                                print(output.name, np.mean(fea), np.std(fea))
-                                if len(fea.flatten()) == 9:
-                                    print(fea)
+                                print(output.name, np.mean(fea), np.std(fea), np.sum(fea))
+                                # if 'quant' in output.name:
+                                #     print(np.max(fea), np.min(fea))
+                                # if len(fea.flatten()) == 9:
+                                #     print(fea)
+                                if output.name == 'DGCNN/Reshape:0':
+                                    print(fea, np.argmax(fea))
+                                if output.name == 'DGCNN/dgcnn1/Conv/act_quant/FakeQuantWithMinMaxVars:0'\
+                                    or output.name == 'DGCNN/dgcnn1/Max:0' \
+                                    or output.name == 'DGCNN/get_edge_feature/concat_quant/FakeQuantWithMinMaxVars:0':
+                                    # print(fea.flatten()[:200], fea.shape)
+                                    print('\n'.join(map(str, (fea[0, 0, :20, :20]))))
+                                if output.name == 'DGCNN/pairwise_distance/MatMul_quant/FakeQuantWithMinMaxVars:0'\
+                                    or output.name == 'DGCNN/pairwise_distance/mul_quant/FakeQuantWithMinMaxVars:0'\
+                                    or output.name == 'DGCNN/pairwise_distance/Mul_1_quant/FakeQuantWithMinMaxVars:0'\
+                                    or output.name == 'DGCNN/pairwise_distance/Sum_quant/FakeQuantWithMinMaxVars:0'\
+                                    or output.name == 'DGCNN/pairwise_distance/sub_quant/FakeQuantWithMinMaxVars:0' \
+                                    or output.name == 'DGCNN/pairwise_distance/sub_1_quant/FakeQuantWithMinMaxVars:0' \
+                                    or output.name == 'DGCNN/knn/TopKV2:0' \
+                                    or output.name == 'DGCNN/knn/TopKV2:1':
+                                    print(fea[0, :20, :20])
+                                # if output.name == 'DGCNN/get_edge_feature_1/Tile:0' \
+                                #     or output.name == 'DGCNN/get_edge_feature_1/GatherV2:0' \
+                                #     or output.name == 'DGCNN/get_edge_feature_1/sub_quant/FakeQuantWithMinMaxVars:0':
+                                #     print(fea.flatten()[:200])
 
                                 if output not in nodes:
                                     nodes[output.name] = Session_out[ind]
@@ -205,5 +229,5 @@ def single_infer(pb_file, input_node):
 
 
 # show_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb")
-# infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_quant.pb", 'input:0', 'DGCNN/Reshape:0')
-single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_quant.pb", 'input:0')
+infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0919_quant_noSTN_noD_relu6/dgcnn_quant.pb", 'input:0', 'DGCNN/Reshape:0')
+# single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_quant.pb", 'input:0')

@@ -9,6 +9,7 @@ sys.path.append(os.path.join(BASE_DIR, '../utils'))
 sys.path.append(os.path.join(BASE_DIR, '../../utils'))
 import tf_util
 from transform_nets import input_transform_net
+import my_quantization
 
 slim = tf.contrib.slim
 
@@ -17,9 +18,11 @@ def placeholder_input(batch_size, num_point):
     pointclouds_pl = tf.placeholder(tf.float32, shape=(batch_size, num_point, 3), name='input')
     return pointclouds_pl
 
+
 def placeholder_label(batch_size):
     labels_pl = tf.placeholder(tf.int32, shape=(batch_size), name='label')
     return labels_pl
+
 
 def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=True, STN=True, weight_decay = 0.00004):
     """ Classification PointNet, input is BxNx3, output Bx40 """
@@ -52,7 +55,8 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
             pass
         adj_matrix = tf_util.pairwise_distance(point_cloud_transformed, quant)
         nn_idx = tf_util.knn(adj_matrix, k=k)
-        edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
+        edge_feature = tf_util.get_edge_feature(point_cloud_transformed,
+                                                nn_idx=nn_idx, k=k)
 
         with tf.variable_scope("dgcnn1"):
             net = slim.conv2d(edge_feature,
@@ -160,7 +164,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                           activation_fn=tf.nn.relu6)
         net = slim.dropout(net, keep_prob=0.5, is_training=is_training, scope='dp2')
         net = slim.conv2d(net,
-                          64, [1, 1],
+                          40, [1, 1],
                           padding='SAME',
                           stride=1,
                           # normalizer_fn=slim.batch_norm,
@@ -168,7 +172,9 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                           biases_initializer=tf.zeros_initializer(),
                           weights_regularizer=slim.l2_regularizer(weight_decay),
                           scope='fc3',
-                          activation_fn=None)
+                          # activation_fn=tf.nn.relu6,
+                          activation_fn=None,
+                          )
         net = tf.reshape(net, [batch_size, -1])
         return net, end_points
 
@@ -176,7 +182,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
 def get_loss(pred, label, end_points):
     """ pred: B*NUM_CLASSES,
       label: B, """
-    labels = tf.one_hot(indices=label, depth=64)
+    labels = tf.one_hot(indices=label, depth=40)
     loss = tf.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
     classify_loss = tf.reduce_mean(loss)
     return classify_loss
@@ -200,15 +206,15 @@ if __name__ == '__main__':
     with tf.Graph().as_default():
         input_pl = placeholder_input(batch_size, num_pt)
         label_pl = placeholder_label(batch_size)
-        pos, ftr = get_network(input_pl, tf.constant(True))
+        pos, ftr = get_network(input_pl, True, quant=1)
+        tf.contrib.quantize.create_training_graph(
+            quant_delay=1)
+        my_quantization.create_training_graph(quant_delay=1)
+
         # loss = get_loss(logits, label_pl, None)
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             feed_dict = {input_pl: input_feed, label_pl: label_feed}
-            res1, res2 = sess.run([pos, ftr], feed_dict=feed_dict)
-            print(res1.shape)
-            print(res1)
-
-            print(res2.shape)
-            print(res2)
+            pred, end_points = sess.run([pos, ftr], feed_dict=feed_dict)
+            print(pred.shape, pred)
