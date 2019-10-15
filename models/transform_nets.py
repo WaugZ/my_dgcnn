@@ -21,6 +21,7 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
     with tf.variable_scope(None, default_name="transform_net"):
         batch_size = edge_feature.get_shape()[0].value
         num_point = edge_feature.get_shape()[1].value
+        neighbor = edge_feature.get_shape()[2].value
 
         # input_image = tf.expand_dims(point_cloud, -1)
 
@@ -45,6 +46,7 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
                           scope='tconv2',
                           activation_fn=tf.nn.relu6)
         net = tf.reduce_max(net, axis=-2, keep_dims=True)
+        # net = slim.max_pool2d(net, [1, neighbor], stride=1, padding='VALID')
         net = slim.conv2d(net,
                           1024, [1, 1],
                           padding='VALID',
@@ -90,6 +92,8 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
                                 biases_initializer=tf.zeros_initializer(),
                                 weights_regularizer=slim.l2_regularizer(weight_decay),
                                 scope='transform_XYZ',
-                                activation_fn=None)
+                                activation_fn=None,
+                                # activation_fn=tf.nn.relu6,
+                                )
         transform = tf.reshape(transform, [batch_size, K, K])
         return transform

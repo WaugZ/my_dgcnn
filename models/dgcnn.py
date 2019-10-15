@@ -24,7 +24,7 @@ def placeholder_label(batch_size):
     return labels_pl
 
 
-def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=True, STN=True, weight_decay = 0.00004):
+def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, quant=None, dynamic=True, STN=True, weight_decay=0.00004):
     """ Classification PointNet, input is BxNx3, output Bx40 """
     bn_decay = bn_decay if bn_decay is not None else 0.9
     with tf.variable_scope("DGCNN"):
@@ -41,22 +41,30 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                      }
 
         if STN:
-            adj_matrix = tf_util.pairwise_distance(point_cloud, quant)
-            nn_idx = tf_util.knn(adj_matrix, k=k)
+            if neighbor is None:
+                adj_matrix = tf_util.pairwise_distance(point_cloud, quant)
+                nn_idx = tf_util.knn(adj_matrix, k=k)
+            else:
+                nn_idx = neighbor
             edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
 
             transform = input_transform_net(edge_feature, is_training, bn_decay, K=3, weight_decay=weight_decay)
 
             with tf.variable_scope("Transform"):
                 point_cloud_transformed = tf.matmul(point_cloud, transform)
+
+            if dynamic:
+                adj_matrix = tf_util.pairwise_distance(point_cloud_transformed, quant)
+                nn_idx = tf_util.knn(adj_matrix, k=k)
         else:
             point_cloud_transformed = point_cloud
+            if neighbor is None:
+                adj_matrix = tf_util.pairwise_distance(point_cloud_transformed, quant)
+                nn_idx = tf_util.knn(adj_matrix, k=k)
+            else:
+                nn_idx = neighbor
 
-            adj_matrix = tf_util.pairwise_distance(point_cloud_transformed, quant)
-            nn_idx = tf_util.knn(adj_matrix, k=k)
-
-        edge_feature = tf_util.get_edge_feature(point_cloud_transformed,
-                                                    nn_idx=nn_idx, k=k)
+        edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
 
         with tf.variable_scope("dgcnn1"):
             net = slim.conv2d(edge_feature,
@@ -69,6 +77,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                               weights_regularizer=slim.l2_regularizer(weight_decay),
                               activation_fn=tf.nn.relu6)
             net = tf.reduce_max(net, axis=-2, keep_dims=True)
+            # net = slim.max_pool2d(net, [1, k], stride=1, padding='VALID')
         net1 = net
 
         if dynamic:
@@ -87,6 +96,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                               weights_regularizer=slim.l2_regularizer(weight_decay),
                               activation_fn=tf.nn.relu6)
             net = tf.reduce_max(net, axis=-2, keep_dims=True)
+            # net = slim.max_pool2d(net, [1, k], stride=1, padding='VALID')
         net2 = net
 
         if dynamic:
@@ -105,6 +115,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                               weights_regularizer=slim.l2_regularizer(weight_decay),
                               activation_fn=tf.nn.relu6)
             net = tf.reduce_max(net, axis=-2, keep_dims=True)
+            # net = slim.max_pool2d(net, [1, k], stride=1, padding='VALID')
         net3 = net
 
         if dynamic:
@@ -123,6 +134,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                               weights_regularizer=slim.l2_regularizer(weight_decay),
                               activation_fn=tf.nn.relu6)
             net = tf.reduce_max(net, axis=-2, keep_dims=True)
+            # net = slim.max_pool2d(net, [1, k], stride=1, padding='VALID')
         net4 = net
 
         with tf.variable_scope("agg"):
@@ -138,6 +150,7 @@ def get_network(point_cloud, is_training, bn_decay=None, quant=None, dynamic=Tru
                               )
 
             net = tf.reduce_max(net, axis=1, keep_dims=True)
+            # net = slim.max_pool2d(net, [num_point, 1], stride=1, padding='VALID')
 
         # MLP on global point cloud vector
         # net = tf.reshape(net, [batch_size, 1, 1, -1])

@@ -35,6 +35,8 @@ parser.add_argument('--dynamic', type=int, default=-1,
                     help="Whether dynamically compute the distance[<0 for yes else for no]")
 parser.add_argument('--stn', type=int, default=-1,
                     help="whether use STN[<0 for yes else for no]")
+parser.add_argument('--quantize_bits', type=int, default=None,
+                    help="quantization bits, make sure quantize_delay > 0 when use [default None for 8 bits]")
 FLAGS = parser.parse_args()
 
 print(FLAGS)
@@ -50,7 +52,10 @@ DECAY_RATE = FLAGS.decay_rate
 CHECKPOINT = FLAGS.checkpoint
 DYNAMIC = True if FLAGS.dynamic < 0 else False
 STN = True if FLAGS.stn < 0 else False
-print('dyancmic: ', DYNAMIC)
+QUANTIZE_BITS = FLAGS.quantize_bits
+if QUANTIZE_BITS:
+    assert FLAGS.quantize_delay and FLAGS.quantize_delay > 0
+# print('dyancmic: ', DYNAMIC)
 
 MODEL = importlib.import_module(FLAGS.model)  # import network module
 MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model + '.py')
@@ -138,22 +143,22 @@ def train():
                                                  STN=STN)
 
             if FLAGS.quantize_delay and FLAGS.quantize_delay > 0:
-                tf.contrib.quantize.create_training_graph(
-                    quant_delay=FLAGS.quantize_delay)
-                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
-                                                                   scope="DGCNN/get_edge_feature")
-                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
-                                                                   scope="DGCNN/get_edge_feature_1")
-                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
-                                                                   scope="DGCNN/get_edge_feature_2")
-                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
-                                                                   scope="DGCNN/get_edge_feature_3")
-                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
-                                                                   scope="DGCNN/agg")
-                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
-                                                                   scope="DGCNN/transform_net")
-                my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
-                                                                   scope="DGCNN/Transform")
+                quant_scopes = ["DGCNN/get_edge_feature", "DGCNN/get_edge_feature_1", "DGCNN/get_edge_feature_2",
+                                "DGCNN/get_edge_feature_3", "DGCNN/get_edge_feature_4", "DGCNN/agg",
+                                "DGCNN/transform_net", "DGCNN/Transform", "DGCNN/dgcnn1", "DGCNN/dgcnn2",
+                                "DGCNN/dgcnn3", "DGCNN/dgcnn4"]
+                if QUANTIZE_BITS and QUANTIZE_BITS > 0:
+                    tf.contrib.quantize.experimental_create_training_graph(
+                        quant_delay=FLAGS.quantize_delay, weight_bits=QUANTIZE_BITS, activation_bits=QUANTIZE_BITS)
+                    for scope in quant_scopes:
+                        my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                        scope=scope, weight_bits=QUANTIZE_BITS, activation_bits=QUANTIZE_BITS)
+                else:
+                    tf.contrib.quantize.create_training_graph(
+                        quant_delay=FLAGS.quantize_delay)
+                    for scope in quant_scopes:
+                        my_quantization.experimental_create_training_graph(quant_delay=FLAGS.quantize_delay,
+                                                                           scope=scope)
 
             # Get loss
             loss = MODEL.get_loss(pred, labels_pl, end_points)

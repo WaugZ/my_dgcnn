@@ -21,9 +21,6 @@ def pairwise_distance(point_cloud, quant=None):
         # point_cloud_transpose = tf.transpose(point_cloud, perm=[0, 2, 1])
         # point_cloud_inner = tf.matmul(point_cloud, point_cloud_transpose)
         point_cloud_inner = tf.matmul(point_cloud, point_cloud, transpose_b=True)
-        if quant:
-            # point_cloud_inner = tf.fake_quant_with_min_max_args(point_cloud_inner, name="matmul_quant")
-            pass
         # point_cloud_inner = -2 * point_cloud_inner
         point_cloud_inner = 2 * point_cloud_inner
         # point_cloud_square = tf.reduce_sum(tf.square(point_cloud), axis=-1, keep_dims=True)

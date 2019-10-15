@@ -228,8 +228,10 @@ def _FindLayersToQuantize(graph):
   sum_patten = graph_matcher.OpTypePattern('Sum')
   concat_patten = graph_matcher.OpTypePattern('Concat|ConcatV2|Tile')
   topk_patten = graph_matcher.OpTypePattern('TopK|TopKV2')
+  max_patten = graph_matcher.OpTypePattern('Max')
   all_pattens = [add_patten, mul_patten, sub_patten, matmul_patten, sub_patten, sum_patten, concat_patten,
-                 # topk_patten
+                 # topk_patten,
+                 # max_patten
                  ]
 
 

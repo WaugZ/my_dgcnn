@@ -73,7 +73,6 @@ def infer_graph(pb_file, input_node, output_nodes):
                     # num_batches = file_size // BATCH_SIZE
                     # print(file_size)
 
-
                     for f_idx in range(file_size):
                         for vote_idx in range(num_votes):
                             # rotated_data = provider.rotate_point_cloud_by_angle(current_data[f_idx:f_idx+1, :, :],
@@ -117,8 +116,8 @@ def infer_graph(pb_file, input_node, output_nodes):
                                 total_seen += 1
 
                 print('eval accuracy: %f' % (total_correct / float(total_seen)))
-                    # print('eval avg class acc: %f' % (
-                    #     np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
+                # print('eval avg class acc: %f' % (
+                #     np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
 
 
 def single_infer(pb_file, input_node):
@@ -140,6 +139,10 @@ def single_infer(pb_file, input_node):
                     print(file_size)
 
                     data = current_data[0:1, :, :]
+                    print(data)
+                    data = np.round(data * 128 + 127)  # quant to [0, 255]
+                    data = (data - 127) / 128
+                    print(data)
                     label = current_label[0]
                     # interpreter.set_tensor(input_details[0]['index'], current_data[f_idx:f_idx+1, :, :])
                     # Set FCN graph to the default graph
@@ -201,20 +204,23 @@ def single_infer(pb_file, input_node):
                                 # if len(fea.flatten()) == 9:
                                 #     print(fea)
                                 if output.name == 'DGCNN/Reshape:0':
-                                    print(fea, np.argmax(fea))
+                                    print(fea, np.argmax(fea), label)
                                 if output.name == 'DGCNN/dgcnn1/Conv/act_quant/FakeQuantWithMinMaxVars:0'\
                                     or output.name == 'DGCNN/dgcnn1/Max:0' \
                                     or output.name == 'DGCNN/get_edge_feature/concat_quant/FakeQuantWithMinMaxVars:0':
                                     # print(fea.flatten()[:200], fea.shape)
                                     print('\n'.join(map(str, (fea[0, 0, :20, :20]))))
-                                if output.name == 'DGCNN/pairwise_distance/MatMul_quant/FakeQuantWithMinMaxVars:0'\
-                                    or output.name == 'DGCNN/pairwise_distance/mul_quant/FakeQuantWithMinMaxVars:0'\
-                                    or output.name == 'DGCNN/pairwise_distance/Mul_1_quant/FakeQuantWithMinMaxVars:0'\
-                                    or output.name == 'DGCNN/pairwise_distance/Sum_quant/FakeQuantWithMinMaxVars:0'\
-                                    or output.name == 'DGCNN/pairwise_distance/sub_quant/FakeQuantWithMinMaxVars:0' \
-                                    or output.name == 'DGCNN/pairwise_distance/sub_1_quant/FakeQuantWithMinMaxVars:0' \
-                                    or output.name == 'DGCNN/knn/TopKV2:0' \
-                                    or output.name == 'DGCNN/knn/TopKV2:1':
+                                if output.name in ['DGCNN/pairwise_distance/MatMul_quant/FakeQuantWithMinMaxVars:0',
+                                     'DGCNN/pairwise_distance/mul_quant/FakeQuantWithMinMaxVars:0',
+                                     'DGCNN/pairwise_distance/Mul_1_quant/FakeQuantWithMinMaxVars:0',
+                                     'DGCNN/pairwise_distance/Sum_quant/FakeQuantWithMinMaxVars:0',
+                                     'DGCNN/pairwise_distance/sub_quant/FakeQuantWithMinMaxVars:0',
+                                     'DGCNN/pairwise_distance/sub_1_quant/FakeQuantWithMinMaxVars:0',
+                                    # 'DGCNN/knn/TopKV2:0',
+                                    'DGCNN/knn/TopKV2:1',
+                                    'DGCNN/get_edge_feature/GatherV2:0',
+                                    'DGCNN/transform_net/tconv1/act_quant/FakeQuantWithMinMaxVars:0',
+                                    ]:
                                     print(fea[0, :20, :20])
                                 # if output.name == 'DGCNN/get_edge_feature_1/Tile:0' \
                                 #     or output.name == 'DGCNN/get_edge_feature_1/GatherV2:0' \
@@ -229,5 +235,5 @@ def single_infer(pb_file, input_node):
 
 
 # show_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb")
-# infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn.pb", 'input:0', 'DGCNN/Reshape:0')
-single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn.pb", 'input:0')
+# infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0929_quantAfterTopK_noSTN_noD/dgcnn.pb", 'input:0', 'DGCNN/Reshape:0')
+single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1010_quant_noD/dgcnn.pb", 'input:0')
