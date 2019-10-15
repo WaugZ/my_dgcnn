@@ -4,3 +4,5 @@ log*/
 .idea/
 __pycache__/
 pretrain_quant8_models/
+dump/
+graph/
