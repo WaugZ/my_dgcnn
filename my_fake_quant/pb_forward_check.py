@@ -2,6 +2,7 @@ import os
 import sys
 import tensorflow as tf  # Default graph is initialized when the library is imported
 import numpy as np
+from math import floor
 from tensorflow.python.platform import gfile
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(BASE_DIR, '../'))
@@ -120,6 +121,184 @@ def infer_graph(pb_file, input_node, output_nodes):
                 #     np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
 
 
+def infer_graph2getnodes(pb_file, test_files, input_node, output_nodes):
+    if not isinstance(output_nodes, list):
+        output_nodes = [output_nodes]
+    with tf.Graph().as_default() as graph:  # Set default graph as graph
+        with tf.Session() as sess:
+            # Load the graph in graph_def
+            # We load the protobuf file from the disk and parse it to retrive the unserialized graph_drf
+            with gfile.FastGFile(pb_file, 'rb') as f:
+                # Read the image & get statstics
+                current_data, current_label = provider.loadDataFile(TEST_FILES[test_files[0]])
+                current_data = current_data[test_files[1]:test_files[1] + 1, 0:NUM_POINT, :]
+                current_label = np.squeeze(current_label)
+                label = current_label[test_files[1]]
+
+                # Set FCN graph to the default graph
+                graph_def = tf.GraphDef()
+                graph_def.ParseFromString(f.read())
+                sess.graph.as_default()
+
+                # Import a graph_def into the current default Graph (In this case, the weights are (typically) embedded in the graph)
+                tf.import_graph_def(
+                    graph_def,
+                    input_map=None,
+                    return_elements=None,
+                    name="",
+                    op_dict=None,
+                    producer_op_list=None
+                )
+
+                res = []
+                for output_node in output_nodes:
+                    # INFERENCE Here
+                    l_input = graph.get_tensor_by_name(input_node)  # Input Tensor
+                    l_output = graph.get_tensor_by_name(output_node)  # Output Tensor
+
+                    # initialize_all_variables
+                    tf.global_variables_initializer()
+
+                    Session_out = sess.run(l_output, feed_dict={l_input: current_data})
+                    res.append(Session_out)
+                return res
+
+
+def get_weigth_quant(graph_file, input_file, initial_node, target_node, mode="MANUAL"):
+    max_v, min_v = (None, None)
+    if mode is "MANUAL":
+        w = infer_graph2getnodes(graph_file, input_file, initial_node, target_node)
+        max_v = np.max(w)
+        min_v = np.min(w)
+    if mode is "SAVED":
+        max_v, min_v = infer_graph2getnodes(graph_file, input_file, initial_node,
+                                   [target_node.replace('FakeQuantWithMinMaxVars', 'max/read'),
+                                    target_node.replace('FakeQuantWithMinMaxVars', 'min/read')])
+    # scale = (max_v - min_v) / 255
+    # zero_point = round(-min_v / scale)
+    zero_point = round(-255 * min_v / (max_v - min_v))
+    scale = -min_v / zero_point
+    return scale, int(zero_point)
+
+
+def get_quantization(graph_file, input_file, initial_node, target_node, prev_node=None):
+    if 'act_quant' in target_node or 'conv_quant' in target_node or 'bypass_quant' in target_node:
+        max_v, min_v = infer_graph2getnodes(graph_file, input_file, initial_node,
+                                   [target_node.replace('FakeQuantWithMinMaxVars', 'max/read'),
+                                    target_node.replace('FakeQuantWithMinMaxVars', 'min/read')])
+    elif 'input' in target_node:
+        return 1. / 127, 128
+    elif prev_node is not None:
+        max_v, min_v = infer_graph2getnodes(graph_file, input_file, initial_node,
+                                   [prev_node.replace('FakeQuantWithMinMaxVars', 'max/read'),
+                                    prev_node.replace('FakeQuantWithMinMaxVars', 'min/read')])
+    else:
+        return None
+    scale = (max_v - min_v) / 255
+    zero_point = -min_v / scale
+    return scale, int(zero_point)
+
+
+def get_conv(graph_file, input_file, initial_node, input_node, weight_node, bias_node, res_node,
+             log_file, stride, prev_node=None, double_check=True):
+    inp, weight, res, bias = infer_graph2getnodes(graph_file, input_file, initial_node,
+                                         [input_node, weight_node, res_node, bias_node])
+
+    file_path = log_file
+    inp_q = get_quantization(graph_file, input_file, initial_node, input_node, prev_node)
+    # weight_q = get_quantization(graph_file, input_file, initial_node, weight_node)
+    weight_q = get_weigth_quant(graph_file, input_file, initial_node, weight_node)
+    print(weight_q)
+    weight_dequant = weight / weight_q[0] + weight_q[1]
+    if np.max(np.abs(weight_dequant - np.round(weight_dequant))) > .001:
+        print(weight_dequant)
+        weight_q = get_weigth_quant(graph_file, input_file, initial_node, weight_node, "SAVED")
+        print(weight_q)
+        weight_dequant = weight / weight_q[0] + weight_q[1]
+    if np.max(np.abs(weight_dequant - np.round(weight_dequant))) > .001:
+        print("warning weight is not totally quantized into uint8: ", weight_dequant)
+        # raise Exception("Error")
+    res_q = get_quantization(graph_file, input_file, initial_node, res_node)
+    bias_q = (inp_q[0] * weight_q[0], 0)
+    stride_h, stride_w = stride
+    # igs1, out1 = inferer_graph("/media/wangzi/wangzi/models/train_logs_inceptionv1_q/inception_v1.pb",
+    #               '/home/wangzi/Desktop/deer7.png', 'input:0', 'InceptionV1/InceptionV1/MaxPool_2a_3x3/MaxPool:0')
+    # print("input:")
+    # print('\n'.join(map(str, ['\t'.join(map(str, x)) for x in out[0, 0:10, 0:10, 0]])))
+    # print("output:")
+    # print('\n'.join(map(str, ['\t'.join(map(str, x)) for x in out1[0, 0:10, 0:10, 0]])))
+    # inputs = ([i for i in igs])
+    # labels = [np.argmax(n) for n in out]
+    # print(list(zip(inputs, labels)))
+
+    with open(file_path, "w") as f_:
+        _, inp_h, inp_w, inp_c = inp.shape
+        _, res_h, res_w, res_c = res.shape
+        k_h, k_w, _, _ = weight.shape
+        pad_h = (res_h - 1) * stride_h - inp_h + k_h
+        pad_w = (res_w - 1) * stride_w - inp_w + k_w
+        f_.write(
+            'input_s {} input_z {} filter_s {} filter_z {} output_s {} output_z {} input_width {} input_height {} '
+            'input_depth {} output_width {} output_height {} output_depth {} filter_width {} filter_height {} '
+            'pad_width {} pad_height {} stride_width {} stride_height {}\n'.
+                format(inp_q[0], inp_q[1], weight_q[0], weight_q[1], res_q[0], res_q[1], inp_w, inp_h,
+                       inp_c, res_w, res_h, res_c, k_w, k_h, int(floor(pad_w / 2)), int(floor(pad_h / 2)), stride_w,
+                       stride_h))
+        inp = inp / inp_q[0] + inp_q[1]
+        if double_check:
+            print("Input ", inp)
+        inp = np.round(inp)
+        inp = inp.astype(np.int)
+        f_.write("Input: ")
+        for b in range(inp.shape[0]):
+            for h in range(inp.shape[1]):
+                for w in range(inp.shape[2]):
+                    for c in range(inp.shape[3]):
+                        f_.write(str(inp[b][h][w][c]) + " ")
+        f_.write('\n')
+
+        f_.write("Weight: ")
+        weight = weight / weight_q[0] + weight_q[1]
+        if double_check:
+            print("Weight ", weight)
+            print(weight.shape)
+        weight = np.round(weight)
+        weight = weight.astype(np.int)
+        for h in range(weight.shape[0]):
+            for w in range(weight.shape[1]):
+                for b in range(weight.shape[2]):
+                    for c in range(weight.shape[3]):
+                        f_.write(str(weight[h][w][b][c]) + " ")
+        f_.write('\n')
+
+        f_.write("Bias: ")
+        print("ori bias", bias)
+        bias = bias / bias_q[0] + bias_q[1]
+        if double_check:
+            print("bias ", bias)
+            print(bias.shape)
+        bias = np.squeeze(bias)
+        bias = np.round(bias)
+        bias = bias.astype(np.int)
+        for c in range(bias.shape[0]):
+            f_.write(str(bias[c]) + " ")
+        f_.write('\n')
+
+        f_.write("Result: ")
+        res = res / res_q[0] + res_q[1]
+        if double_check:
+            print("Res ", res, " quant ", res_q)
+        res = np.round(res)
+        res = res.astype(np.int)
+        for b in range(res.shape[0]):
+            for h in range(res.shape[1]):
+                for w in range(res.shape[2]):
+                    for c in range(res.shape[3]):
+                        f_.write(str(res[b][h][w][c]) + " ")
+        f_.write('\n')
+        print("file is written in {}".format(log_file))
+
+
 def single_infer(pb_file, input_node):
     with tf.Graph().as_default() as graph:  # Set default graph as graph
         with tf.Session() as sess:
@@ -139,10 +318,10 @@ def single_infer(pb_file, input_node):
                     print(file_size)
 
                     data = current_data[0:1, :, :]
-                    print(data)
+                    # print(data)
                     data = np.round(data * 128 + 127)  # quant to [0, 255]
                     data = (data - 127) / 128
-                    print(data)
+                    # print(data)
                     label = current_label[0]
                     # interpreter.set_tensor(input_details[0]['index'], current_data[f_idx:f_idx+1, :, :])
                     # Set FCN graph to the default graph
@@ -220,6 +399,8 @@ def single_infer(pb_file, input_node):
                                     'DGCNN/knn/TopKV2:1',
                                     'DGCNN/get_edge_feature/GatherV2:0',
                                     'DGCNN/transform_net/tconv1/act_quant/FakeQuantWithMinMaxVars:0',
+                                    'DGCNN/transform_net/transform_XYZ/act_quant/FakeQuantWithMinMaxVars:0',
+                                    'DGCNN/Transform/MatMul_quant/FakeQuantWithMinMaxVars:0'
                                     ]:
                                     print(fea[0, :20, :20])
                                 # if output.name == 'DGCNN/get_edge_feature_1/Tile:0' \
@@ -236,4 +417,11 @@ def single_infer(pb_file, input_node):
 
 # show_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb")
 # infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0929_quantAfterTopK_noSTN_noD/dgcnn.pb", 'input:0', 'DGCNN/Reshape:0')
-single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1010_quant_noD/dgcnn.pb", 'input:0')
+# single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1010_quant_noD/dgcnn.pb", 'input:0')
+get_conv(graph_file="/media/wangzi/wangzi/codes/my_dgcnn/log_1010_quant_noD/dgcnn.pb", input_file=[0,0],
+         initial_node='input:0', input_node='DGCNN/transform_net/Max:0',
+         weight_node='DGCNN/transform_net/tconv3/weights_quant/FakeQuantWithMinMaxVars:0',
+         bias_node='DGCNN/transform_net/tconv3/BatchNorm_Fold/bias:0',
+         res_node='DGCNN/transform_net/tconv3/act_quant/FakeQuantWithMinMaxVars:0',
+             log_file='/media/wangzi/wangzi/codes/my_dgcnn/log_1010_quant_noD/1x1conv', stride=[1, 1],
+         prev_node='DGCNN/transform_net/tconv2/act_quant/FakeQuantWithMinMaxVars:0', double_check=True)

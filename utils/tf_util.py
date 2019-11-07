@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def pairwise_distance(point_cloud, quant=None):
+def pairwise_distance(point_cloud):
     """Compute pairwise distance of a point cloud. (euclidean distance)
 
     Args:
@@ -47,7 +47,7 @@ def knn(adj_matrix, k=20):
         return nn_idx
 
 
-def get_edge_feature(point_cloud, nn_idx, k=20):
+def get_edge_feature(point_cloud, nn_idx, k=20, concat_feature=True):
     """Construct edge feature for each point
     Args:
       point_cloud: (batch_size, num_points, 1, num_dims)
@@ -80,5 +80,8 @@ def get_edge_feature(point_cloud, nn_idx, k=20):
 
         point_cloud_central = tf.tile(point_cloud_central, [1, 1, k, 1])
 
-        edge_feature = tf.concat([point_cloud_central, point_cloud_neighbors - point_cloud_central], axis=-1)
+        if concat_feature:
+            edge_feature = tf.concat([point_cloud_central, point_cloud_neighbors - point_cloud_central], axis=-1)
+        else:
+            edge_feature = point_cloud_neighbors - point_cloud_central
         return edge_feature

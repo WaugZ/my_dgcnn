@@ -32,6 +32,8 @@ parser.add_argument('--stn', type=int, default=-1,
                     help="whether use STN[<0 for yes else for no]")
 parser.add_argument('--quantize_bits', type=int, default=None,
                     help="quantization bits, make sure quantize_delay > 0 when use [default None for 8 bits]")
+parser.add_argument('--scale', type=float, default=1., help="dgcnn depth scale")
+parser.add_argument('--concat', type=int, default=1, help="whether concat neighbor's feature 1 for yes else for no")
 FLAGS = parser.parse_args()
 
 
@@ -47,6 +49,8 @@ NUM_VOTES = FLAGS.num_votes
 QUANTIZE_BITS = FLAGS.quantize_bits
 if QUANTIZE_BITS:
     assert FLAGS.quantize_delay and FLAGS.quantize_delay > 0
+SCALE = FLAGS.scale
+CONCAT = True if FLAGS.concat == 1 else False
 if not os.path.exists(DUMP_DIR): os.mkdir(DUMP_DIR)
 LOG_FOUT = open(os.path.join(DUMP_DIR, 'log_evaluate.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
@@ -76,7 +80,8 @@ def evaluate(num_votes):
         labels_pl = MODEL.placeholder_label(BATCH_SIZE)
 
         # simple model
-        pred, end_points = MODEL.get_network(pointclouds_pl, is_training, dynamic=DYNAMIC, STN=STN)
+        pred, end_points = MODEL.get_network(pointclouds_pl, is_training, dynamic=DYNAMIC, STN=STN,
+                                             scale=SCALE, concat_fea=CONCAT)
         if FLAGS.quantize_delay >= 0:
             quant_scopes = ["DGCNN/get_edge_feature", "DGCNN/get_edge_feature_1", "DGCNN/get_edge_feature_2",
                             "DGCNN/get_edge_feature_3", "DGCNN/get_edge_feature_4", "DGCNN/agg",

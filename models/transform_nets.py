@@ -10,7 +10,8 @@ import tf_util
 slim = tf.contrib.slim
 
 
-def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=False, weight_decay=0.0):
+def input_transform_net(edge_feature, is_training, bn_decay=None, K=3,
+                        scale=1., is_dist=False, weight_decay=0.00004):
     """ Input (XYZ) Transform Net, input is BxNx3 gray image
       Return:
         Transformation matrix of size 3xK """
@@ -26,7 +27,9 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
         # input_image = tf.expand_dims(point_cloud, -1)
 
         net = slim.conv2d(edge_feature,
-                          64, [1, 1],
+                          # 64,
+                          max(int(round(64 * scale)), 32),
+                          [1, 1],
                           padding='VALID',
                           stride=1,
                           activation_fn=tf.nn.relu6,
@@ -36,7 +39,9 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
                           weights_regularizer=slim.l2_regularizer(weight_decay),
                           scope='tconv1')
         net = slim.conv2d(net,
-                          128, [1, 1],
+                          # 128,
+                          max(int(round(128 * scale)), 32),
+                          [1, 1],
                           padding='VALID',
                           stride=1,
                           normalizer_fn=slim.batch_norm,
@@ -48,7 +53,9 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
         net = tf.reduce_max(net, axis=-2, keep_dims=True)
         # net = slim.max_pool2d(net, [1, neighbor], stride=1, padding='VALID')
         net = slim.conv2d(net,
-                          1024, [1, 1],
+                          # 1024,
+                          max(int(round(1024 * scale)), 32),
+                          [1, 1],
                           padding='VALID',
                           stride=1,
                           normalizer_fn=slim.batch_norm,
@@ -63,7 +70,9 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
         # net = tf.reshape(net, [batch_size, 1, 1, -1])
         # print(net)
         net = slim.conv2d(net,
-                          512, [1, 1],
+                          # 512,
+                          max(int(round(512 * scale)), 32),
+                          [1, 1],
                           padding='SAME',
                           stride=1,
                           normalizer_fn=slim.batch_norm,
@@ -73,7 +82,9 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
                           scope='tfc1',
                           activation_fn=tf.nn.relu6)
         net = slim.conv2d(net,
-                          256, [1, 1],
+                          # 256,
+                          max(int(round(256 * scale)), 32),
+                          [1, 1],
                           padding='SAME',
                           stride=1,
                           normalizer_fn=slim.batch_norm,

@@ -26,6 +26,8 @@ parser.add_argument('--quantize_bits', type=int, default=None,
                     help="quantization bits, make sure quantize_delay > 0 when use [default None for 8 bits]")
 parser.add_argument('--neighbor', type=int, default=None,
                     help="whether neighbor is an input of the network[default None for no, else for yes]")
+parser.add_argument('--scale', type=float, default=1., help="dgcnn depth scale")
+parser.add_argument('--concat', type=int, default=1, help="whether concat neighbor's feature 1 for yes else for no")
 FLAGS = parser.parse_args()
 
 BATCH_SIZE = FLAGS.batch_size
@@ -39,6 +41,8 @@ if NEIGHBOR:
     assert DYNAMIC is False, "when split the structure of net, must not dynamically find neighbor"
 if QUANTIZE_BITS:
     assert FLAGS.quantize_delay and FLAGS.quantize_delay > 0
+SCALE = FLAGS.scale
+CONCAT = True if FLAGS.concat == 1 else False
 
 
 if __name__ == "__main__":
@@ -49,7 +53,8 @@ if __name__ == "__main__":
             knn_pl = tf.placeholder(tf.int32, shape=(BATCH_SIZE, NUM_POINT, k), name='knn')
         else:
             knn_pl = None
-        MODEL.get_network(pointclouds_pl, neighbor=knn_pl, is_training=False, dynamic=DYNAMIC, STN=STN)
+        MODEL.get_network(pointclouds_pl, neighbor=knn_pl, is_training=False, dynamic=DYNAMIC, STN=STN,
+                          scale=SCALE, concat_fea=CONCAT)
 
         if FLAGS.quantize_delay >= 0:
             quant_scopes = ["DGCNN/get_edge_feature", "DGCNN/get_edge_feature_1", "DGCNN/get_edge_feature_2",

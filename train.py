@@ -1,13 +1,11 @@
 import argparse
-import math
-import h5py
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.ops import control_flow_ops
 import socket
 import importlib
 import os
 import sys
+import time
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -37,6 +35,8 @@ parser.add_argument('--stn', type=int, default=-1,
                     help="whether use STN[<0 for yes else for no]")
 parser.add_argument('--quantize_bits', type=int, default=None,
                     help="quantization bits, make sure quantize_delay > 0 when use [default None for 8 bits]")
+parser.add_argument('--scale', type=float, default=1., help="dgcnn depth scale")
+parser.add_argument('--concat', type=int, default=1, help="whether concat neighbor's feature 1 for yes else for no")
 FLAGS = parser.parse_args()
 
 print(FLAGS)
@@ -55,6 +55,8 @@ STN = True if FLAGS.stn < 0 else False
 QUANTIZE_BITS = FLAGS.quantize_bits
 if QUANTIZE_BITS:
     assert FLAGS.quantize_delay and FLAGS.quantize_delay > 0
+SCALE = FLAGS.scale
+CONCAT = True if FLAGS.concat == 1 else False
 # print('dyancmic: ', DYNAMIC)
 
 MODEL = importlib.import_module(FLAGS.model)  # import network module
@@ -138,9 +140,10 @@ def train():
             # Get model
             pred, end_points = MODEL.get_network(pointclouds_pl, is_training,
                                                  bn_decay=bn_decay,
-                                                 quant=FLAGS.quantize_delay,
                                                  dynamic=DYNAMIC,
-                                                 STN=STN)
+                                                 STN=STN,
+                                                 scale=SCALE,
+                                                 concat_fea=CONCAT)
 
             if FLAGS.quantize_delay and FLAGS.quantize_delay > 0:
                 quant_scopes = ["DGCNN/get_edge_feature", "DGCNN/get_edge_feature_1", "DGCNN/get_edge_feature_2",
@@ -239,7 +242,8 @@ def train():
         if CHECKPOINT:
             saver.restore(sess, CHECKPOINT)
         for epoch in range(MAX_EPOCH):
-            log_string('**** EPOCH %03d ****' % (epoch))
+            log_string(('**** EPOCH %03d ****' % (epoch))
+                       + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '****')
             sys.stdout.flush()
 
             ma = train_one_epoch(sess, ops, train_writer)
