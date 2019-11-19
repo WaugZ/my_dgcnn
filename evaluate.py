@@ -30,8 +30,6 @@ parser.add_argument('--dynamic', type=int, default=-1,
 parser.add_argument('--num_votes', type=int,  default=1, help="augment number for evaluation")
 parser.add_argument('--stn', type=int, default=-1,
                     help="whether use STN[<0 for yes else for no]")
-parser.add_argument('--quantize_bits', type=int, default=None,
-                    help="quantization bits, make sure quantize_delay > 0 when use [default None for 8 bits]")
 parser.add_argument('--scale', type=float, default=1., help="dgcnn depth scale")
 parser.add_argument('--concat', type=int, default=1, help="whether concat neighbor's feature 1 for yes else for no")
 FLAGS = parser.parse_args()
@@ -46,9 +44,6 @@ DUMP_DIR = FLAGS.dump_dir
 DYNAMIC = True if FLAGS.dynamic < 0 else False
 STN = True if FLAGS.stn < 0 else False
 NUM_VOTES = FLAGS.num_votes
-QUANTIZE_BITS = FLAGS.quantize_bits
-if QUANTIZE_BITS:
-    assert FLAGS.quantize_delay and FLAGS.quantize_delay > 0
 SCALE = FLAGS.scale
 CONCAT = True if FLAGS.concat == 1 else False
 if not os.path.exists(DUMP_DIR): os.mkdir(DUMP_DIR)
@@ -87,16 +82,9 @@ def evaluate(num_votes):
                             "DGCNN/get_edge_feature_3", "DGCNN/get_edge_feature_4", "DGCNN/agg",
                             "DGCNN/transform_net", "DGCNN/Transform", "DGCNN/dgcnn1", "DGCNN/dgcnn2",
                             "DGCNN/dgcnn3", "DGCNN/dgcnn4"]
-            if QUANTIZE_BITS and QUANTIZE_BITS > 0:
-                tf.contrib.quantize.experimental_create_eval_graph(weight_bits=QUANTIZE_BITS,
-                                                                   activation_bits=QUANTIZE_BITS)
-                for scope in quant_scopes:
-                    my_quantization.experimental_create_eval_graph(scope=scope, weight_bits=QUANTIZE_BITS,
-                                                                   activation_bits=QUANTIZE_BITS)
-            else:
-                tf.contrib.quantize.create_eval_graph()
-                for scope in quant_scopes:
-                    my_quantization.experimental_create_eval_graph(scope=scope)
+            tf.contrib.quantize.create_eval_graph()
+            for scope in quant_scopes:
+                my_quantization.experimental_create_eval_graph(scope=scope)
 
         loss = MODEL.get_loss(pred, labels_pl, end_points)
         

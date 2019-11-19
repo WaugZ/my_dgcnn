@@ -134,6 +134,6 @@ def tflite_infer(model):
 
 if __name__ == "__main__":
     # start = time.time()
-    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log/dgcnn_uint8.tflite")
+    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1109_.5_quant_noD_noconcat/dgcnn_uint8.tflite")
     # end = time.time()
     # print("infer finish in {}".format(end - start))

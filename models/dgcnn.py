@@ -47,7 +47,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
                 nn_idx = tf_util.knn(adj_matrix, k=k)
             else:
                 nn_idx = neighbor
-            edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k, concat_feature=concat_fea)
+            edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
 
             transform = input_transform_net(edge_feature, is_training, bn_decay, K=3,
                                             weight_decay=weight_decay, scale=scale)
@@ -66,7 +66,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
             else:
                 nn_idx = neighbor
 
-        edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k, concat_feature=concat_fea)
+        edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
 
         with tf.variable_scope("dgcnn1"):
             net = slim.conv2d(edge_feature,
