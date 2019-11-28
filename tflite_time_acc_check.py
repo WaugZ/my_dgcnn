@@ -120,7 +120,7 @@ def tflite_infer(model):
     print('eval accuracy: %f' % (total_correct / float(total_seen)))
     print('eval avg class acc: %f' % (
         np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
-    print("eval finish in {}".format(total_time))
+    print("avg eval cost time {} ms per sample".format(total_time / total_seen * 1000))
 
 # img = cv2.imread("/home/wangzi/Downloads/cifar_10_test/45daebfcdfea1599761e15998da6fbb8.jpg")
 # input_data = cv2.resize(img, (input_shape[1], input_shape[2]))
@@ -134,6 +134,6 @@ def tflite_infer(model):
 
 if __name__ == "__main__":
     # start = time.time()
-    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1109_.5_quant_noD_noconcat/dgcnn_uint8.tflite")
+    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1108_.5_noD_noconcat/dgcnn_float32.tflite")
     # end = time.time()
     # print("infer finish in {}".format(end - start))

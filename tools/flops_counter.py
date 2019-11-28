@@ -51,11 +51,6 @@ if __name__ == "__main__":
             is_training = tf.placeholder(tf.bool, shape=(), name="is_training")
         else:
             is_training = True
-        # print(is_training_pl)
-
-        # Note the global_step=batch parameter to minimize.
-        # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
-        batch = tf.Variable(0)
 
         # Get model
         pred, end_points = MODEL.get_network(pointclouds_pl, is_training,

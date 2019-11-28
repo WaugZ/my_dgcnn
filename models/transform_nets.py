@@ -11,13 +11,12 @@ slim = tf.contrib.slim
 
 
 def input_transform_net(edge_feature, is_training, bn_decay=None, K=3,
-                        scale=1., is_dist=False, weight_decay=0.00004):
+                        scale=1., weight_decay=0.00004):
     """ Input (XYZ) Transform Net, input is BxNx3 gray image
       Return:
         Transformation matrix of size 3xK """
     bn_params = {"is_training": is_training,
                  "decay": bn_decay,
-                 'epsilon': 1e-3
                  }
     with tf.variable_scope(None, default_name="transform_net"):
         batch_size = edge_feature.get_shape()[0].value
@@ -54,6 +53,7 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3,
         # net = slim.max_pool2d(net, [1, neighbor], stride=1, padding='VALID')
         net = slim.conv2d(net,
                           # 1024,
+                          # max(int(round(1024 * scale)), 32),
                           max(int(round(1024 * scale)), 32),
                           [1, 1],
                           padding='VALID',
@@ -98,8 +98,8 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3,
                                 K * K, [1, 1],
                                 padding='SAME',
                                 stride=1,
-                                normalizer_fn=slim.batch_norm,
-                                normalizer_params=bn_params,
+                                normalizer_fn=None,
+                                # normalizer_params=bn_params,
                                 biases_initializer=tf.zeros_initializer(),
                                 weights_regularizer=slim.l2_regularizer(weight_decay),
                                 scope='transform_XYZ',
@@ -108,3 +108,103 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3,
                                 )
         transform = tf.reshape(transform, [batch_size, K, K])
         return transform
+
+
+def feature_transform_net(inputs, is_training, bn_decay=None, K=64, scale=1., weight_decay=0.00004):
+    """ Feature Transform Net, input is BxNx1xK
+        Return:
+            Transformation matrix of size KxK """
+
+    bn_params = {"is_training": is_training,
+                 "decay": bn_decay,
+                 'epsilon': 1e-3
+                 }
+    with tf.variable_scope(None, default_name="feature_transform_net"):
+
+        batch_size = inputs.get_shape()[0].value
+        num_point = inputs.get_shape()[1].value
+
+        net = slim.conv2d(inputs,
+                          # 64,
+                          max(int(round(64 * scale)), 32),
+                          [1, 1],
+                          padding='VALID',
+                          stride=1,
+                          activation_fn=tf.nn.relu6,
+                          normalizer_fn=slim.batch_norm,
+                          normalizer_params=bn_params,
+                          biases_initializer=tf.zeros_initializer(),
+                          weights_regularizer=slim.l2_regularizer(weight_decay),
+                          scope='tconv1')
+
+        net = slim.conv2d(net,
+                          # 128,
+                          max(int(round(128 * scale)), 32),
+                          [1, 1],
+                          padding='VALID',
+                          stride=1,
+                          activation_fn=tf.nn.relu6,
+                          normalizer_fn=slim.batch_norm,
+                          normalizer_params=bn_params,
+                          biases_initializer=tf.zeros_initializer(),
+                          weights_regularizer=slim.l2_regularizer(weight_decay),
+                          scope='tconv2')
+
+        net = slim.conv2d(net,
+                          # 128,
+                          max(int(round(1024 * scale)), 32),
+                          [1, 1],
+                          padding='VALID',
+                          stride=1,
+                          activation_fn=tf.nn.relu6,
+                          normalizer_fn=slim.batch_norm,
+                          normalizer_params=bn_params,
+                          biases_initializer=tf.zeros_initializer(),
+                          weights_regularizer=slim.l2_regularizer(weight_decay),
+                          scope='tconv3')
+        net = slim.max_pool2d(net, [num_point, 1],
+                              padding='VALID', scope='tmaxpool')
+
+        # net = tf.reshape(net, [batch_size, -1])
+
+        net = slim.conv2d(net,
+                          # 128,
+                          max(int(round(512 * scale)), 32),
+                          [1, 1],
+                          padding='VALID',
+                          stride=1,
+                          activation_fn=tf.nn.relu6,
+                          normalizer_fn=slim.batch_norm,
+                          normalizer_params=bn_params,
+                          biases_initializer=tf.zeros_initializer(),
+                          weights_regularizer=slim.l2_regularizer(weight_decay),
+                          scope='tfc1')
+
+        net = slim.conv2d(net,
+                          # 128,
+                          max(int(round(256 * scale)), 32),
+                          [1, 1],
+                          padding='VALID',
+                          stride=1,
+                          activation_fn=tf.nn.relu6,
+                          normalizer_fn=slim.batch_norm,
+                          normalizer_params=bn_params,
+                          biases_initializer=tf.zeros_initializer(),
+                          weights_regularizer=slim.l2_regularizer(weight_decay),
+                          scope='tfc2')
+
+        transform = slim.conv2d(net,
+                                K * K, [1, 1],
+                                padding='SAME',
+                                stride=1,
+                                normalizer_fn=None,
+                                # normalizer_params=bn_params,
+                                biases_initializer=tf.zeros_initializer(),
+                                weights_regularizer=slim.l2_regularizer(weight_decay),
+                                scope='transform_XYZ',
+                                activation_fn=None,
+                                # activation_fn=tf.nn.relu6,
+                                )
+
+        transform = tf.reshape(transform, [batch_size, K, K])
+    return transform

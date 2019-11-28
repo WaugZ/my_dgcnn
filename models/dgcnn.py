@@ -150,6 +150,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
         with tf.variable_scope("agg"):
             net = slim.conv2d(tf.concat([net1, net2, net3, net4], axis=-1),
                               # 1024,
+                              # max(int(round(1024 * scale)), 32),
                               max(int(round(1024 * scale)), 32),
                               [1, 1],
                               padding='VALID',
