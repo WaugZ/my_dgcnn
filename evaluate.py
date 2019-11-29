@@ -81,7 +81,8 @@ def evaluate(num_votes):
             quant_scopes = ["DGCNN/get_edge_feature", "DGCNN/get_edge_feature_1", "DGCNN/get_edge_feature_2",
                             "DGCNN/get_edge_feature_3", "DGCNN/get_edge_feature_4", "DGCNN/agg",
                             "DGCNN/transform_net", "DGCNN/Transform", "DGCNN/dgcnn1", "DGCNN/dgcnn2",
-                            "DGCNN/dgcnn3", "DGCNN/dgcnn4"]
+                            "DGCNN/dgcnn3", "DGCNN/dgcnn4",
+                            "PointNet"]
             tf.contrib.quantize.create_eval_graph()
             for scope in quant_scopes:
                 my_quantization.experimental_create_eval_graph(scope=scope)

@@ -13,15 +13,15 @@ import pc_util
 
 # ModelNet40 official train/test split
 TRAIN_FILES = provider.getDataFiles( \
-    os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt'))
+    os.path.join(BASE_DIR, '..', 'data/modelnet40_ply_hdf5_2048/train_files.txt'))
 TEST_FILES = provider.getDataFiles(\
-    os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
+    os.path.join(BASE_DIR, '..', 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
 NUM_POINT = 1024
 NUM_CLASSES = 40
 DUMP_DIR = '../dump'
 BATCH_SIZE = 1
 SHAPE_NAMES = [line.rstrip() for line in \
-    open(os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/shape_names.txt'))]
+    open(os.path.join(BASE_DIR, '..', 'data/modelnet40_ply_hdf5_2048/shape_names.txt'))]
 
 
 def show_graph(pb_file):
@@ -64,7 +64,8 @@ def infer_graph(pb_file, input_node, output_nodes):
                 total_seen = 0
                 for fn in range(len(TEST_FILES)):
                     print('----' + str(fn) + '----')
-                    current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
+                    h5f = os.path.join(BASE_DIR, "..", TEST_FILES[fn])
+                    current_data, current_label = provider.loadDataFile(h5f)
                     current_data = current_data[:, 0:NUM_POINT, :]
                     # current_data = np.expand_dims(current_data, axis=-2)
                     current_label = np.squeeze(current_label)

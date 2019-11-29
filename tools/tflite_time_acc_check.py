@@ -38,7 +38,7 @@ def naive_arg_topK(matrix, K, axis=0):
 
 def tflite_infer(model):
     TEST_FILES = provider.getDataFiles(\
-        os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
+        os.path.join(BASE_DIR, '..', 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
     NUM_POINT = 1024
     NUM_CLASSES = 40
     # output_file = "/home/wangzi/quant_log.txt"
@@ -72,7 +72,8 @@ def tflite_infer(model):
     total_time = 0
 
     for fn in range(len(TEST_FILES)):
-        current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
+        h5f = os.path.join(BASE_DIR, '..', TEST_FILES[fn])
+        current_data, current_label = provider.loadDataFile(h5f)
         current_data = current_data[:, 0:NUM_POINT, :]
 
         # current_data = np.round(current_data * 128 + 127)
@@ -134,6 +135,6 @@ def tflite_infer(model):
 
 if __name__ == "__main__":
     # start = time.time()
-    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1108_.5_noD_noconcat/dgcnn_float32.tflite")
+    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1109_.5_quant_noD_noconcat/dgcnn_uint8.tflite")
     # end = time.time()
     # print("infer finish in {}".format(end - start))
