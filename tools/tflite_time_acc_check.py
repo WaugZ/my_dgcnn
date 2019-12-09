@@ -3,11 +3,18 @@ import tensorflow as tf
 import os
 import sys
 import time
+import argparse
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
-sys.path.append(os.path.join(BASE_DIR, 'models'))
-sys.path.append(os.path.join(BASE_DIR, 'utils'))
+sys.path.append(os.path.join(BASE_DIR, '..', 'models'))
+sys.path.append(os.path.join(BASE_DIR, '..', 'utils'))
+sys.path.append(os.path.join(BASE_DIR, '..'))
 import provider
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--model_path', help='tflite model path')
+parser.add_argument('--loginfo', default=None, help='tflite model path')
+FLAGS = parser.parse_args()
 
 
 def find_neighbor(point_cloud):
@@ -16,10 +23,10 @@ def find_neighbor(point_cloud):
     point_cloud_inner = np.matmul(point_cloud, point_cloud_transpose)
     # point_cloud_inner = -2 * point_cloud_inner
     point_cloud_inner = -2 * point_cloud_inner
-    # point_cloud_square = tf.reduce_sum(tf.square(point_cloud), axis=-1, keep_dims=True)
+    # point_cloud_square = tf.reduce_sum(tf.square(point_cloud), axis=-1, keepdims=True)
     point_cloud_square = np.sum(np.multiply(point_cloud, point_cloud), axis=-1, keepdims=True)
     point_cloud_square_transpose = np.transpose(point_cloud_square, axes=[0, 2, 1])
-    # point_cloud_square_tranpose = tf.reduce_sum(tf.square(point_cloud_transpose), axis=-2, keep_dims=True)
+    # point_cloud_square_tranpose = tf.reduce_sum(tf.square(point_cloud_transpose), axis=-2, keepdims=True)
     # return point_cloud_square + point_cloud_inner + point_cloud_square_tranpose
     return point_cloud_inner + point_cloud_square + point_cloud_square_transpose
 
@@ -108,7 +115,8 @@ def tflite_infer(model):
                 total_time += end - start
                 output_data = interpreter.get_tensor(output_details[0]['index'])
                 pred = np.argmax(output_data)
-                print(output_data, pred, current_label[f_idx])
+                if FLAGS.loginfo:
+                    print(output_data, pred, current_label[f_idx])
 
                 l = current_label[f_idx]
                 total_seen_class[l] += 1
@@ -117,6 +125,8 @@ def tflite_infer(model):
                 # correct = np.sum(pred_val_topk[:,0:topk] == label_val)
                 total_correct += 1 if pred == l else 0
                 total_seen += 1
+                if total_seen % 100 == 0:
+                    print("processed {} samples".format(total_seen))
 
     print('eval accuracy: %f' % (total_correct / float(total_seen)))
     print('eval avg class acc: %f' % (
@@ -135,6 +145,7 @@ def tflite_infer(model):
 
 if __name__ == "__main__":
     # start = time.time()
-    tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1109_.5_quant_noD_noconcat/dgcnn_uint8.tflite")
+    # tflite_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1010_quant_noD/dgcnn_uint8V2.tflite")
+    tflite_infer(FLAGS.model_path)
     # end = time.time()
     # print("infer finish in {}".format(end - start))

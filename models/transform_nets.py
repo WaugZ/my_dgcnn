@@ -49,7 +49,7 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3,
                           weights_regularizer=slim.l2_regularizer(weight_decay),
                           scope='tconv2',
                           activation_fn=tf.nn.relu6)
-        net = tf.reduce_max(net, axis=-2, keep_dims=True)
+        net = tf.reduce_max(net, axis=-2, keepdims=True)
         # net = slim.max_pool2d(net, [1, neighbor], stride=1, padding='VALID')
         net = slim.conv2d(net,
                           # 1024,

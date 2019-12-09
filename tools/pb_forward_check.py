@@ -16,7 +16,7 @@ TRAIN_FILES = provider.getDataFiles( \
     os.path.join(BASE_DIR, '..', 'data/modelnet40_ply_hdf5_2048/train_files.txt'))
 TEST_FILES = provider.getDataFiles(\
     os.path.join(BASE_DIR, '..', 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
-NUM_POINT = 1024
+NUM_POINT = 512
 NUM_CLASSES = 40
 DUMP_DIR = '../dump'
 BATCH_SIZE = 1
@@ -380,12 +380,12 @@ def single_infer(pb_file, input_node):
                             # print(Session_out)
                             for ind, output in enumerate(op.outputs):
                                 fea = Session_out[ind]
-                                print(output.name, np.mean(fea), np.std(fea), np.sum(fea))
+                                print(output.name, fea.shape, np.mean(fea), np.std(fea), np.sum(fea))
                                 # if 'quant' in output.name:
                                 #     print(np.max(fea), np.min(fea))
                                 # if len(fea.flatten()) == 9:
                                 #     print(fea)
-                                if output.name == 'DGCNN/Reshape:0':
+                                if output.name == 'DGCNN/Reshape:0' or output.name == 'PointNet/Reshape:0':
                                     print(fea, np.argmax(fea), label)
                                 if output.name == 'DGCNN/dgcnn1/Conv/act_quant/FakeQuantWithMinMaxVars:0'\
                                     or output.name == 'DGCNN/dgcnn1/Max:0' \
@@ -422,11 +422,12 @@ def single_infer(pb_file, input_node):
 
 # show_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb")
 # infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0929_quantAfterTopK_noSTN_noD/dgcnn.pb", 'input:0', 'DGCNN/Reshape:0')
-single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1108_.5_noD_noconcat/dgcnn.pb", 'input:0')
-# get_conv(graph_file="/media/wangzi/wangzi/codes/my_dgcnn/log_1010_quant_noD/dgcnn.pb", input_file=[0,0],
-#          initial_node='input:0', input_node='DGCNN/transform_net/Max:0',
-#          weight_node='DGCNN/transform_net/tconv3/weights_quant/FakeQuantWithMinMaxVars:0',
-#          bias_node='DGCNN/transform_net/tconv3/BatchNorm_Fold/bias:0',
-#          res_node='DGCNN/transform_net/tconv3/act_quant/FakeQuantWithMinMaxVars:0',
-#              log_file='/media/wangzi/wangzi/codes/my_dgcnn/log_1010_quant_noD/1x1conv', stride=[1, 1],
-#          prev_node='DGCNN/transform_net/tconv2/act_quant/FakeQuantWithMinMaxVars:0', double_check=True)
+single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1129_pointnet512_quant/pointnet.pb", 'input:0')
+get_conv(graph_file="/media/wangzi/wangzi/codes/my_dgcnn/log_1129_pointnet512_quant/pointnet.pb", input_file=[0,0],
+         initial_node='input:0', input_node='PointNet/transform_net1/transform_net/tconv2/act_quant/FakeQuantWithMinMaxVars:0',
+         weight_node='PointNet/transform_net1/transform_net/tconv3/weights_quant/FakeQuantWithMinMaxVars:0',
+         bias_node='PointNet/transform_net1/transform_net/tconv3/BatchNorm_Fold/bias:0',
+         res_node='PointNet/transform_net1/transform_net/tconv3/act_quant/FakeQuantWithMinMaxVars:0',
+             log_file='/media/wangzi/wangzi/codes/my_dgcnn/log_1129_pointnet512_quant/1x1conv_d1024', stride=[1, 1],
+         # prev_node='DGCNN/transform_net/tconv2/act_quant/FakeQuantWithMinMaxVars:0',
+         double_check=True)

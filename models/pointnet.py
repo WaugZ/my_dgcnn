@@ -41,7 +41,6 @@ def get_network(point_cloud, is_training, bn_decay=None, neighbor=None, dynamic=
         point_cloud_transformed = tf.matmul(point_cloud, transform)
         input_image = tf.expand_dims(point_cloud_transformed, -1)
 
-
         net = slim.conv2d(input_image,
                           # 64,
                           max(int(round(64 * scale)), 32),

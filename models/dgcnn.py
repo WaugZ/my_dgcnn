@@ -80,7 +80,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
                               biases_initializer=tf.zeros_initializer(),
                               weights_regularizer=slim.l2_regularizer(weight_decay),
                               activation_fn=tf.nn.relu6)
-            net = tf.reduce_max(net, axis=-2, keep_dims=True)
+            net = tf.reduce_max(net, axis=-2, keepdims=True)
             # net = slim.max_pool2d(net, [1, k], stride=1, padding='VALID')
         net1 = net
 
@@ -101,7 +101,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
                               biases_initializer=tf.zeros_initializer(),
                               weights_regularizer=slim.l2_regularizer(weight_decay),
                               activation_fn=tf.nn.relu6)
-            net = tf.reduce_max(net, axis=-2, keep_dims=True)
+            net = tf.reduce_max(net, axis=-2, keepdims=True)
             # net = slim.max_pool2d(net, [1, k], stride=1, padding='VALID')
         net2 = net
 
@@ -122,7 +122,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
                               biases_initializer=tf.zeros_initializer(),
                               weights_regularizer=slim.l2_regularizer(weight_decay),
                               activation_fn=tf.nn.relu6)
-            net = tf.reduce_max(net, axis=-2, keep_dims=True)
+            net = tf.reduce_max(net, axis=-2, keepdims=True)
             # net = slim.max_pool2d(net, [1, k], stride=1, padding='VALID')
         net3 = net
 
@@ -143,7 +143,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
                               biases_initializer=tf.zeros_initializer(),
                               weights_regularizer=slim.l2_regularizer(weight_decay),
                               activation_fn=tf.nn.relu6)
-            net = tf.reduce_max(net, axis=-2, keep_dims=True)
+            net = tf.reduce_max(net, axis=-2, keepdims=True)
             # net = slim.max_pool2d(net, [1, k], stride=1, padding='VALID')
         net4 = net
 
@@ -162,7 +162,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
                               activation_fn=tf.nn.relu6
                               )
 
-            net = tf.reduce_max(net, axis=1, keep_dims=True)
+            net = tf.reduce_max(net, axis=1, keepdims=True)
             # net = slim.max_pool2d(net, [num_point, 1], stride=1, padding='VALID')
 
         # MLP on global point cloud vector
