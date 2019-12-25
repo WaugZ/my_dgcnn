@@ -59,6 +59,8 @@ def get_edge_feature(point_cloud, nn_idx, k=20, concat_feature=True):
     """
     with tf.variable_scope(None, default_name="get_edge_feature"):
         og_batch_size = point_cloud.get_shape().as_list()[0]
+        if point_cloud.get_shape().as_list()[-1] == 1:
+            point_cloud = tf.squeeze(point_cloud, [-1])
         if point_cloud.get_shape().as_list()[2] == 1:
             point_cloud = tf.squeeze(point_cloud, [2])
         # if og_batch_size == 1:

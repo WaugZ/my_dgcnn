@@ -37,6 +37,7 @@ for ((i=0;i<=250;i+=5)); do
         python evaluate.py --model_path=$base_dir/$model $params > "$base_dir/tmp_log"
         score=`awk '/eval accuracy:/{print $3}' "$base_dir/tmp_log"`
         # echo $score
+        echo "now $i with $score , last best score is $best_score in $best_ind"
         if [ `echo "$best_score < $score"|bc` -eq 1 ]; then
             # echo "haha"
             best_score=$score

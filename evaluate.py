@@ -8,6 +8,11 @@ import os
 import scipy.misc
 import sys
 
+try:
+    from tensorflow.python.util import module_wrapper as deprecation
+except ImportError:
+    from tensorflow.python.util import deprecation_wrapper as deprecation
+deprecation._PER_MODULE_WARNING_LIMIT = 0
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -7,7 +7,12 @@ import os
 import sys
 import time
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+try:
+    from tensorflow.python.util import module_wrapper as deprecation
+except ImportError:
+    from tensorflow.python.util import deprecation_wrapper as deprecation
+deprecation._PER_MODULE_WARNING_LIMIT = 0
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -20,7 +25,7 @@ import my_quantization
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 parser.add_argument('--model', default='dgcnn', help='Model name: dgcnn')
-parser.add_argument('--log_dir', default='log', help='Log dir [default: log]')
+parser.add_argument('--log_dir', default='logs/log', help='Log dir [default: logs/log]')
 parser.add_argument('--num_point', type=int, default=1024, help='Point Number [256/512/1024/2048] [default: 1024]')
 parser.add_argument('--max_epoch', type=int, default=251, help='Epoch to run [default: 250]')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch Size during training [default: 32]')
@@ -166,7 +171,7 @@ def train():
             # tf.summary.scalar('loss', loss)
             tf.summary.scalar('loss', total_loss)
 
-            correct = tf.equal(tf.argmax(pred, 1), tf.to_int64(labels_pl))
+            correct = tf.equal(tf.argmax(pred, 1), tf.cast(labels_pl, tf.int64))
             accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(BATCH_SIZE)
             tf.summary.scalar('accuracy', accuracy)
 
@@ -189,7 +194,7 @@ def train():
                 train_op = optimizer.minimize(total_loss, global_step=batch)
 
             # Add ops to save and restore all the variables.
-            saver = tf.train.Saver(max_to_keep=50)
+            saver = tf.train.Saver(max_to_keep=51)
 
         # Create a session
         config = tf.ConfigProto()

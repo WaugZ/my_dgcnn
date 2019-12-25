@@ -16,7 +16,7 @@ TRAIN_FILES = provider.getDataFiles( \
     os.path.join(BASE_DIR, '..', 'data/modelnet40_ply_hdf5_2048/train_files.txt'))
 TEST_FILES = provider.getDataFiles(\
     os.path.join(BASE_DIR, '..', 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
-NUM_POINT = 512
+NUM_POINT = 1024
 NUM_CLASSES = 40
 DUMP_DIR = '../dump'
 BATCH_SIZE = 1
@@ -422,12 +422,12 @@ def single_infer(pb_file, input_node):
 
 # show_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0828_best_quant_ori/dgcnn_quant.pb")
 # infer_graph("/media/wangzi/wangzi/codes/my_dgcnn/log_0929_quantAfterTopK_noSTN_noD/dgcnn.pb", 'input:0', 'DGCNN/Reshape:0')
-single_infer("/media/wangzi/wangzi/codes/my_dgcnn/log_1129_pointnet512_quant/pointnet.pb", 'input:0')
-get_conv(graph_file="/media/wangzi/wangzi/codes/my_dgcnn/log_1129_pointnet512_quant/pointnet.pb", input_file=[0,0],
-         initial_node='input:0', input_node='PointNet/transform_net1/transform_net/tconv2/act_quant/FakeQuantWithMinMaxVars:0',
-         weight_node='PointNet/transform_net1/transform_net/tconv3/weights_quant/FakeQuantWithMinMaxVars:0',
-         bias_node='PointNet/transform_net1/transform_net/tconv3/BatchNorm_Fold/bias:0',
-         res_node='PointNet/transform_net1/transform_net/tconv3/act_quant/FakeQuantWithMinMaxVars:0',
-             log_file='/media/wangzi/wangzi/codes/my_dgcnn/log_1129_pointnet512_quant/1x1conv_d1024', stride=[1, 1],
-         # prev_node='DGCNN/transform_net/tconv2/act_quant/FakeQuantWithMinMaxVars:0',
-         double_check=True)
+single_infer("/media/wangzi/wangzi/codes/my_dgcnn/logs/log_1106_.75_quant_noD/dgcnn.pb", 'input:0')
+# get_conv(graph_file="/media/wangzi/wangzi/codes/my_dgcnn/log_1129_pointnet512_quant/pointnet.pb", input_file=[0,0],
+#          initial_node='input:0', input_node='PointNet/transform_net1/transform_net/tconv2/act_quant/FakeQuantWithMinMaxVars:0',
+#          weight_node='PointNet/transform_net1/transform_net/tconv3/weights_quant/FakeQuantWithMinMaxVars:0',
+#          bias_node='PointNet/transform_net1/transform_net/tconv3/BatchNorm_Fold/bias:0',
+#          res_node='PointNet/transform_net1/transform_net/tconv3/act_quant/FakeQuantWithMinMaxVars:0',
+#              log_file='/media/wangzi/wangzi/codes/my_dgcnn/log_1129_pointnet512_quant/1x1conv_d1024', stride=[1, 1],
+#          # prev_node='DGCNN/transform_net/tconv2/act_quant/FakeQuantWithMinMaxVars:0',
+#          double_check=True)
