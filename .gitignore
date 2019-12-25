@@ -9,3 +9,5 @@ graph/
 *.pyc
 hdf5_data/
 PartAnnotation/
+train_results/
+test_results/
