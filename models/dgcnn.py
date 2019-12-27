@@ -12,7 +12,7 @@ from transform_nets import input_transform_net
 import my_quantization
 
 slim = tf.contrib.slim
-
+from tensorflow.contrib.model_pruning.python.layers import layers
 
 def placeholder_input(batch_size, num_point):
     pointclouds_pl = tf.placeholder(tf.float32, shape=(batch_size, num_point, 3), name='input')
@@ -69,7 +69,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
         edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
 
         with tf.variable_scope("dgcnn1"):
-            net = slim.conv2d(edge_feature,
+            net = layers.masked_conv2d(edge_feature,
                               # 64,
                               max(int(round(64 * scale)), 32),
                               [1, 1],
@@ -90,7 +90,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
         edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k, concat_feature=concat_fea)
 
         with tf.variable_scope("dgcnn2"):
-            net = slim.conv2d(edge_feature,
+            net = layers.masked_conv2d(edge_feature,
                               # 64,
                               max(int(round(64 * scale)), 32),
                               [1, 1],
@@ -111,7 +111,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
         edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k, concat_feature=concat_fea)
 
         with tf.variable_scope("dgcnn3"):
-            net = slim.conv2d(edge_feature,
+            net = layers.masked_conv2d(edge_feature,
                               # 64,
                               max(int(round(64 * scale)), 32),
                               [1, 1],
@@ -132,7 +132,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
         edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k, concat_feature=concat_fea)
 
         with tf.variable_scope("dgcnn4"):
-            net = slim.conv2d(edge_feature,
+            net = layers.masked_conv2d(edge_feature,
                               # 128,
                               max(int(round(128 * scale)), 32),
                               [1, 1],
@@ -148,7 +148,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
         net4 = net
 
         with tf.variable_scope("agg"):
-            net = slim.conv2d(tf.concat([net1, net2, net3, net4], axis=-1),
+            net = layers.masked_conv2d(tf.concat([net1, net2, net3, net4], axis=-1),
                               # 1024,
                               # max(int(round(1024 * scale)), 32),
                               max(int(round(1024 * scale)), 32),
@@ -167,7 +167,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
 
         # MLP on global point cloud vector
         # net = tf.reshape(net, [batch_size, 1, 1, -1])
-        net = slim.conv2d(net,
+        net = layers.masked_conv2d(net,
                           # 512,
                           max(int(round(512 * scale)), 32),
                           [1, 1],
@@ -180,7 +180,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
                           scope='fc1',
                           activation_fn=tf.nn.relu6)
         net = slim.dropout(net, keep_prob=0.5, is_training=is_training, scope='dp1')
-        net = slim.conv2d(net,
+        net = layers.masked_conv2d(net,
                           # 256,
                           max(int(round(256 * scale)), 32),
                           [1, 1],
@@ -193,7 +193,7 @@ def get_network(point_cloud, is_training, neighbor=None, bn_decay=None, dynamic=
                           scope='fc2',
                           activation_fn=tf.nn.relu6)
         net = slim.dropout(net, keep_prob=0.5, is_training=is_training, scope='dp2')
-        net = slim.conv2d(net,
+        net = layers.masked_conv2d(net,
                           40, [1, 1],
                           padding='SAME',
                           stride=1,

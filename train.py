@@ -6,6 +6,8 @@ import importlib
 import os
 import sys
 import time
+from tensorflow.contrib.model_pruning.python import pruning
+from tensorflow.contrib.model_pruning.python import learning
 
 try:
     from tensorflow.python.util import module_wrapper as deprecation
@@ -14,6 +16,7 @@ except ImportError:
 deprecation._PER_MODULE_WARNING_LIMIT = 0
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
+slim = tf.contrib.slim
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
@@ -42,6 +45,10 @@ parser.add_argument('--stn', type=int, default=-1,
                     help="whether use STN[<0 for yes else for no]")
 parser.add_argument('--scale', type=float, default=1., help="dgcnn depth scale")
 parser.add_argument('--concat', type=int, default=1, help="whether concat neighbor's feature 1 for yes else for no")
+parser.add_argument('--pruning_hparams', default="",
+                    help="Comma separated list of pruning-related hyperparameters, "
+                         "check https://github.com/tensorflow/tensorflow/tree/r1.15/tensorflow/contrib/model_pruning "
+                         "for detail")
 FLAGS = parser.parse_args()
 
 print(FLAGS)
@@ -147,6 +154,20 @@ def train():
                                                  scale=SCALE,
                                                  concat_fea=CONCAT)
 
+            # Parse pruning hyperparameters
+            pruning_hparams = pruning.get_pruning_hparams().parse(FLAGS.pruning_hparams)
+
+            # Create a pruning object using the pruning specification
+            p = pruning.Pruning(pruning_hparams, global_step=batch)
+
+            # Add conditional mask update op. Executing this op will update all
+            # the masks in the graph if the current global step is in the range
+            # [begin_pruning_step, end_pruning_step] as specified by the pruning spec
+            mask_update_op = p.conditional_mask_update_op()
+
+            # Add summaries to keep track of the sparsity in different layers during training
+            p.add_pruning_summaries()
+
             if FLAGS.quantize_delay and FLAGS.quantize_delay > 0:
                 quant_scopes = ["DGCNN/get_edge_feature", "DGCNN/get_edge_feature_1", "DGCNN/get_edge_feature_2",
                                 "DGCNN/get_edge_feature_3", "DGCNN/get_edge_feature_4", "DGCNN/agg",
@@ -190,8 +211,8 @@ def train():
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies([tf.group(*update_ops)]):
-                # train_op = optimizer.minimize(loss, global_step=batch)
                 train_op = optimizer.minimize(total_loss, global_step=batch)
+                # train_op = slim.learning.create_train_op(total_loss, optimizer)
 
             # Add ops to save and restore all the variables.
             saver = tf.train.Saver(max_to_keep=51)
@@ -223,7 +244,8 @@ def train():
                    'loss': loss,
                    'train_op': train_op,
                    'merged': merged,
-                   'step': batch}
+                   'step': batch,
+                   'mask_update_op': mask_update_op}
         else:
             ops = {'pointclouds_pl': pointclouds_pl,
                    'labels_pl': labels_pl,
@@ -232,7 +254,8 @@ def train():
                    'loss': loss,
                    'train_op': train_op,
                    'merged': merged,
-                   'step': batch}
+                   'step': batch,
+                   'mask_update_op': mask_update_op}
 
         ever_best = 0
         if CHECKPOINT:
@@ -314,6 +337,7 @@ def train_one_epoch(sess, ops, train_writer):
             summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
                                                              ops['train_op'], ops['loss'], ops['pred']],
                                                             feed_dict=feed_dict)
+            sess.run(ops['mask_update_op'])
             train_writer.add_summary(summary, step)
             pred_val = np.argmax(pred_val, 1)
             correct = np.sum(pred_val == current_label[start_idx:end_idx])

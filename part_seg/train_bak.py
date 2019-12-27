@@ -65,7 +65,7 @@ BN_DECAY_DECAY_RATE = 0.5
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = 0.99
 
-BASE_LEARNING_RATE = 0.0001
+BASE_LEARNING_RATE = 0.003
 MOMENTUM = 0.9
 TRAINING_EPOCHES = FLAGS.epoch
 CHECKPOINT = FLAGS.checkpoint
@@ -119,12 +119,11 @@ def train():
             BN_DECAY_DECAY_STEP,
             BN_DECAY_DECAY_RATE,
             staircase=True)
-        # bn_decay = tf.maximum(BN_DECAY_CLIP, bn_momentum)
-        bn_decay = None
+        bn_decay = tf.maximum(BN_DECAY_CLIP, bn_momentum)
 
         lr_op = tf.summary.scalar('learning_rate', learning_rate)
         batch_op = tf.summary.scalar('batch_number', batch)
-        # bn_decay_op = tf.summary.scalar('bn_decay', bn_decay)
+        bn_decay_op = tf.summary.scalar('bn_decay', bn_decay)
 
         trainer = tf.train.AdamOptimizer(learning_rate)
 
@@ -256,17 +255,13 @@ def train():
                 total_loss = total_loss * 1.0 / num_batch
                 total_seg_acc = total_seg_acc * 1.0 / num_batch
 
-                # lr_sum, bn_decay_sum, batch_sum, train_loss_sum, train_seg_acc_sum = sess.run(
-                #     [lr_op, bn_decay_op, batch_op, total_train_loss_sum_op, seg_train_acc_sum_op],
-                #     feed_dict={total_training_loss_ph: total_loss, seg_training_acc_ph: total_seg_acc})
-                lr_sum, batch_sum, train_loss_sum, train_seg_acc_sum = sess.run(
-                    [lr_op, batch_op, total_train_loss_sum_op, seg_train_acc_sum_op],
+                lr_sum, bn_decay_sum, batch_sum, train_loss_sum, train_seg_acc_sum = sess.run(
+                    [lr_op, bn_decay_op, batch_op, total_train_loss_sum_op, seg_train_acc_sum_op],
                     feed_dict={total_training_loss_ph: total_loss, seg_training_acc_ph: total_seg_acc})
-
 
                 train_writer.add_summary(train_loss_sum, i + epoch_num * num_train_file)
                 train_writer.add_summary(lr_sum, i + epoch_num * num_train_file)
-                # train_writer.add_summary(bn_decay_sum, i + epoch_num * num_train_file)
+                train_writer.add_summary(bn_decay_sum, i + epoch_num * num_train_file)
                 train_writer.add_summary(train_seg_acc_sum, i + epoch_num * num_train_file)
                 train_writer.add_summary(batch_sum, i + epoch_num * num_train_file)
 
