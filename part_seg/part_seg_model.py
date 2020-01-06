@@ -13,6 +13,7 @@ import tf_util
 from transform_nets import input_transform_net
 
 slim = tf.contrib.slim
+from tensorflow.contrib.model_pruning.python.layers import layers
 
 
 def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
@@ -47,7 +48,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         #                      padding='VALID', stride=[1,1],
         #                      bn=True, is_training=is_training, weight_decay=weight_decay,
         #                      scope='adj_conv1', bn_decay=bn_decay, is_dist=True)
-        out1 = slim.conv2d(edge_feature,
+        out1 = layers.masked_conv2d(edge_feature,
                            64,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -55,7 +56,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -65,7 +66,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         #                      padding='VALID', stride=[1,1],
         #                      bn=True, is_training=is_training, weight_decay=weight_decay,
         #                      scope='adj_conv2', bn_decay=bn_decay, is_dist=True)
-        out2 = slim.conv2d(out1,
+        out2 = layers.masked_conv2d(out1,
                            64,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -73,7 +74,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -89,7 +90,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         #                      padding='VALID', stride=[1,1],
         #                      bn=True, is_training=is_training, weight_decay=weight_decay,
         #                      scope='adj_conv3', bn_decay=bn_decay, is_dist=True)
-        out3 = slim.conv2d(edge_feature,
+        out3 = layers.masked_conv2d(edge_feature,
                            64,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -97,7 +98,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -107,7 +108,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         #                      padding='VALID', stride=[1,1],
         #                      bn=True, is_training=is_training, weight_decay=weight_decay,
         #                      scope='adj_conv4', bn_decay=bn_decay, is_dist=True)
-        out4 = slim.conv2d(out3,
+        out4 = layers.masked_conv2d(out3,
                            64,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -115,7 +116,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -131,7 +132,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         #                      padding='VALID', stride=[1,1],
         #                      bn=True, is_training=is_training, weight_decay=weight_decay,
         #                      scope='adj_conv5', bn_decay=bn_decay, is_dist=True)
-        out5 = slim.conv2d(edge_feature,
+        out5 = layers.masked_conv2d(edge_feature,
                            64,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -139,7 +140,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -156,7 +157,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         #                      padding='VALID', stride=[1,1],
         #                      bn=True, is_training=is_training,
         #                      scope='adj_conv7', bn_decay=bn_decay, is_dist=True)
-        out7 = slim.conv2d(tf.concat([net_1, net_2, net_3], axis=-1),
+        out7 = layers.masked_conv2d(tf.concat([net_1, net_2, net_3], axis=-1),
                            1024,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -164,7 +165,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -178,7 +179,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         #                      padding='VALID', stride=[1,1],
         #                      bn=True, is_training=is_training,
         #                      scope='one_hot_label_expand', bn_decay=bn_decay, is_dist=True)
-        one_hot_label_expand = slim.conv2d(one_hot_label_expand,
+        one_hot_label_expand = layers.masked_conv2d(one_hot_label_expand,
                                            64,
                                            # max(int(round(64 * scale)), 32),
                                            [1, 1],
@@ -186,7 +187,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                                            stride=1,
                                            normalizer_fn=slim.batch_norm,
                                            normalizer_params=bn_params,
-                                           biases_initializer=tf.zeros_initializer(),
+                                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                                            weights_regularizer=slim.l2_regularizer(weight_decay),
                                            activation_fn=tf.nn.relu6,
                                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -201,7 +202,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
 
         # net2 = tf_util.conv2d(concat, 256, [1,1], padding='VALID', stride=[1,1], bn_decay=bn_decay,
         #           bn=True, is_training=is_training, scope='seg/conv1', weight_decay=weight_decay, is_dist=True)
-        net2 = slim.conv2d(concat,
+        net2 = layers.masked_conv2d(concat,
                            256,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -209,7 +210,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -218,7 +219,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         net2 = slim.dropout(net2, keep_prob=0.6, is_training=is_training, scope='seg/dp1')
         # net2 = tf_util.conv2d(net2, 256, [1,1], padding='VALID', stride=[1,1], bn_decay=bn_decay,
         #           bn=True, is_training=is_training, scope='seg/conv2', weight_decay=weight_decay, is_dist=True)
-        net2 = slim.conv2d(net2,
+        net2 = layers.masked_conv2d(net2,
                            256,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -226,7 +227,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
@@ -235,7 +236,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
         net2 = slim.dropout(net2, keep_prob=0.6, is_training=is_training, scope='seg/dp2')
         # net2 = tf_util.conv2d(net2, 128, [1,1], padding='VALID', stride=[1,1], bn_decay=bn_decay,
         #           bn=True, is_training=is_training, scope='seg/conv3', weight_decay=weight_decay, is_dist=True)
-        net2 = slim.conv2d(net2,
+        net2 = layers.masked_conv2d(net2,
                            128,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -243,14 +244,14 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=slim.batch_norm,
                            normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=tf.nn.relu6,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),
                            scope='seg/conv3')
         # net2 = tf_util.conv2d(net2, part_num, [1,1], padding='VALID', stride=[1,1], activation_fn=None,
         #           bn=False, scope='seg/conv4', weight_decay=weight_decay, is_dist=True)
-        net2 = slim.conv2d(net2,
+        net2 = layers.masked_conv2d(net2,
                            part_num,
                            # max(int(round(64 * scale)), 32),
                            [1, 1],
@@ -258,7 +259,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
                            stride=1,
                            normalizer_fn=None,
                            # normalizer_params=bn_params,
-                           biases_initializer=tf.zeros_initializer(),
+                           biases_initializer=tf.contrib.layers.xavier_initializer(),
                            weights_regularizer=slim.l2_regularizer(weight_decay),
                            activation_fn=None,
                            weights_initializer=tf.contrib.layers.xavier_initializer(),

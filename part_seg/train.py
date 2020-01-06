@@ -119,8 +119,8 @@ def train():
             BN_DECAY_DECAY_STEP,
             BN_DECAY_DECAY_RATE,
             staircase=True)
-        # bn_decay = tf.maximum(BN_DECAY_CLIP, bn_momentum)
-        bn_decay = None
+        bn_decay = tf.maximum(BN_DECAY_CLIP, bn_momentum)
+        # bn_decay = None
 
         lr_op = tf.summary.scalar('learning_rate', learning_rate)
         batch_op = tf.summary.scalar('batch_number', batch)
@@ -347,7 +347,7 @@ def train():
         start_epoch = 0
         if CHECKPOINT:
             saver.restore(sess, CHECKPOINT)
-            start_epoch = int(CHECKPOINT.split('.')[0].split('_')[-1])
+            start_epoch = int(CHECKPOINT.split('.')[0].split('_')[-1]) + 1
 
         for epoch in range(start_epoch, TRAINING_EPOCHES):
             if not FLAGS.quantize_delay:

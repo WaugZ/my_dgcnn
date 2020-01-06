@@ -7,7 +7,6 @@ import os
 import sys
 import time
 from tensorflow.contrib.model_pruning.python import pruning
-from tensorflow.contrib.model_pruning.python import learning
 
 try:
     from tensorflow.python.util import module_wrapper as deprecation
@@ -16,13 +15,11 @@ except ImportError:
 deprecation._PER_MODULE_WARNING_LIMIT = 0
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
-slim = tf.contrib.slim
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
 sys.path.append(os.path.join(BASE_DIR, 'utils'))
 import provider
-import tf_util
 import my_quantization
 
 parser = argparse.ArgumentParser()
@@ -137,7 +134,6 @@ def train():
                 is_training = tf.placeholder(tf.bool, shape=(), name="is_training")
             else:
                 is_training = True
-            # print(is_training_pl)
 
             # Note the global_step=batch parameter to minimize.
             # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
@@ -245,7 +241,8 @@ def train():
                    'train_op': train_op,
                    'merged': merged,
                    'step': batch,
-                   'mask_update_op': mask_update_op}
+                   # 'mask_update_op': mask_update_op
+                   }
         else:
             ops = {'pointclouds_pl': pointclouds_pl,
                    'labels_pl': labels_pl,
@@ -255,7 +252,8 @@ def train():
                    'train_op': train_op,
                    'merged': merged,
                    'step': batch,
-                   'mask_update_op': mask_update_op}
+                   # 'mask_update_op': mask_update_op
+                   }
 
         ever_best = 0
         if CHECKPOINT:
@@ -337,7 +335,7 @@ def train_one_epoch(sess, ops, train_writer):
             summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
                                                              ops['train_op'], ops['loss'], ops['pred']],
                                                             feed_dict=feed_dict)
-            sess.run(ops['mask_update_op'])
+            # sess.run(ops['mask_update_op'])
             train_writer.add_summary(summary, step)
             pred_val = np.argmax(pred_val, 1)
             correct = np.sum(pred_val == current_label[start_idx:end_idx])

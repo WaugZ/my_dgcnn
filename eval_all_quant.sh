@@ -13,6 +13,7 @@ done
 # echo $params
 
 base_dir=$1
+base_dir=${base_dir%*/}
 prefix="model"
 backfix=.meta
 
@@ -29,15 +30,17 @@ awk_re=$awk_re"mantel:|monitor:|night_stand:|person:|piano:|plant:|radio:|"
 awk_re=$awk_re"range_hood:|sink:|sofa:|stairs:|stool:|table:|tent:|toilet:|"
 awk_re=$awk_re"tv_stand:|vase:|wardrobe:|xbox:/"
 
+message=""
 for ((i=0;i<=250;i+=5)); do
-    echo "now $i current best score is $best_score in $prefix-$best_ind"
+    echo "to process $i current best score is $best_score in $prefix-$best_ind"
     model="$prefix-$i.ckpt"
     full_name="$model$backfix"
     if [ -f "$base_dir/$full_name" ]; then
         python evaluate.py --model_path=$base_dir/$model $params > "$base_dir/tmp_log"
         score=`awk '/eval accuracy:/{print $3}' "$base_dir/tmp_log"`
         # echo $score
-        echo "now $i with $score , last best score is $best_score in $best_ind"
+        echo "processed $i with $score , last best score is $best_score in $best_ind"
+        message="$message$i:$score\n"
         if [ `echo "$best_score < $score"|bc` -eq 1 ]; then
             # echo "haha"
             best_score=$score
@@ -51,6 +54,7 @@ for ((i=0;i<=250;i+=5)); do
     fi
 done
 
+echo -e "$message"
 echo "best score is $best_score in $best_ind"
 
 if [ -f "$base_dir/tmp_log" ]; then

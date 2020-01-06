@@ -173,7 +173,7 @@ def feature_transform_net(inputs, is_training, bn_decay=None, K=64, scale=1., we
         batch_size = inputs.get_shape()[0].value
         num_point = inputs.get_shape()[1].value
 
-        net = slim.conv2d(inputs,
+        net = layers.masked_conv2d(inputs,
                           # 64,
                           max(int(round(64 * scale)), 32),
                           [1, 1],
@@ -186,7 +186,7 @@ def feature_transform_net(inputs, is_training, bn_decay=None, K=64, scale=1., we
                           weights_regularizer=slim.l2_regularizer(weight_decay),
                           scope='tconv1')
 
-        net = slim.conv2d(net,
+        net = layers.masked_conv2d(net,
                           # 128,
                           max(int(round(128 * scale)), 32),
                           [1, 1],
@@ -199,7 +199,7 @@ def feature_transform_net(inputs, is_training, bn_decay=None, K=64, scale=1., we
                           weights_regularizer=slim.l2_regularizer(weight_decay),
                           scope='tconv2')
 
-        net = slim.conv2d(net,
+        net = layers.masked_conv2d(net,
                           # 128,
                           max(int(round(1024 * scale)), 32),
                           [1, 1],
@@ -216,7 +216,7 @@ def feature_transform_net(inputs, is_training, bn_decay=None, K=64, scale=1., we
 
         # net = tf.reshape(net, [batch_size, -1])
 
-        net = slim.conv2d(net,
+        net = layers.masked_conv2d(net,
                           # 128,
                           max(int(round(512 * scale)), 32),
                           [1, 1],
@@ -229,7 +229,7 @@ def feature_transform_net(inputs, is_training, bn_decay=None, K=64, scale=1., we
                           weights_regularizer=slim.l2_regularizer(weight_decay),
                           scope='tfc1')
 
-        net = slim.conv2d(net,
+        net = layers.masked_conv2d(net,
                           # 128,
                           max(int(round(256 * scale)), 32),
                           [1, 1],
@@ -242,7 +242,7 @@ def feature_transform_net(inputs, is_training, bn_decay=None, K=64, scale=1., we
                           weights_regularizer=slim.l2_regularizer(weight_decay),
                           scope='tfc2')
 
-        transform = slim.conv2d(net,
+        transform = layers.masked_conv2d(net,
                                 K * K, [1, 1],
                                 padding='SAME',
                                 stride=1,
