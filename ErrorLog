@@ -1,3 +1,0 @@
-[bug]is_training的判断不能使用placeholder，因为量化接口的is_training 参数只能是bool类型不能是tf.constant类型。也即量化的训练图和测试图不能在训练中动态的变化。除非每次校验的时候重建校验网络结构&读取参数文件作校验，然后重建训练网络继续训练……
-
-inputs values are quantized into the quantization range ([0; 2^num_bits - 1] when narrow_range is false and [1; 2^num_bits - 1] when it is true) 
